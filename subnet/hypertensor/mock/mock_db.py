@@ -86,6 +86,19 @@ class MockDatabase:
             )
             """
         )
+
+        # Bootnodes table
+        c.execute(
+            """
+            CREATE TABLE IF NOT EXISTS bootnodes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                subnet_id INTEGER,
+                peer_id TEXT,
+                bootnode TEXT
+            )
+            """
+        )
+
         self.conn.commit()
 
     def reset_database(self):
@@ -98,9 +111,7 @@ class MockDatabase:
 
     def insert_subnet_node(self, subnet_id: int, node_info: dict):
         print(f"Inserting node, subnet_id={subnet_id}, node_info={node_info}")
-        classification_json = json.dumps(
-            _serialize_for_json(node_info.get("classification", {}))
-        )
+        classification_json = json.dumps(_serialize_for_json(node_info.get("classification", {})))
 
         c = self.conn.cursor()
         c.execute(
@@ -158,9 +169,7 @@ class MockDatabase:
 
     def get_all_subnet_nodes(self, subnet_id: int) -> list[dict]:
         c = self.conn.cursor()
-        c.execute(
-            "SELECT info_json FROM subnet_nodes WHERE subnet_id = ?", (subnet_id,)
-        )
+        c.execute("SELECT info_json FROM subnet_nodes WHERE subnet_id = ?", (subnet_id,))
         rows = c.fetchall()
 
         result = []
@@ -218,3 +227,44 @@ class MockDatabase:
             "data": json.loads(row["data_json"]),
             "args": json.loads(row["args_json"]) if row["args_json"] else None,
         }
+
+    def insert_bootnode(self, subnet_id: int, peer_id: str, bootnode: str):
+        c = self.conn.cursor()
+        c.execute(
+            """
+            INSERT OR REPLACE INTO bootnodes (
+                subnet_id, peer_id, bootnode
+            )
+            VALUES (?, ?, ?)
+            """,
+            (
+                subnet_id,
+                peer_id,
+                bootnode,
+            ),
+        )
+        self.conn.commit()
+
+    def get_bootnode(self, subnet_id: int, peer_id: str) -> Optional[dict]:
+        c = self.conn.cursor()
+        c.execute(
+            "SELECT * FROM bootnodes WHERE subnet_id = ? AND peer_id = ?",
+            (subnet_id, peer_id),
+        )
+        row = c.fetchone()
+        if not row:
+            return None
+        return {
+            "peer_id": row["peer_id"],
+            "bootnode": row["bootnode"],
+        }
+
+    def get_all_bootnodes(self, subnet_id: int) -> list[dict]:
+        c = self.conn.cursor()
+        c.execute("SELECT * FROM bootnodes WHERE subnet_id = ?", (subnet_id,))
+        rows = c.fetchall()
+
+        result = []
+        for row in rows:
+            result.append(row)
+        return result

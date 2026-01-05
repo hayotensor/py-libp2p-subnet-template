@@ -243,8 +243,9 @@ custom_rpc_type_registry = {
         "AllSubnetBootnodes": {
             "type": "struct",
             "type_mapping": [
-                ["bootnodes", "BTreeSet<BoundedVec<u8, DefaultMaxVectorLength>>"],
-                ["node_bootnodes", "BTreeSet<BoundedVec<u8, DefaultMaxVectorLength>>"],
+                ["bootnodes", "BTreeMap<PeerId, BoundedVec<u8, DefaultMaxVectorLength>>"],
+                ["node_bootnodes", "BTreeMap<PeerId, Option<BoundedVec<u8, DefaultMaxVectorLength>>>"],
+                ["registered_bootnodes", "BTreeMap<PeerId, Option<BoundedVec<u8, DefaultMaxVectorLength>>>"],
             ],
         },
         "SubnetNodeStakeInfo": {
@@ -299,6 +300,8 @@ custom_rpc_type_registry = {
         "AccountId20": "[u8; 20]",
         "BTreeMap<[u8; 20], u32>": "Vec<([u8; 20], u32)>",
         "BTreeMap<AccountId20, u32>": "Vec<([u8; 20], u32)>",
+        "BTreeMap<PeerId, BoundedVec<u8, DefaultMaxVectorLength>>": "Vec<(Vec<u8>, Vec<u8>)>",
+        "BTreeMap<PeerId, Option<BoundedVec<u8, DefaultMaxVectorLength>>>": "BTreeMap<PeerId, BoundedVec<u8, DefaultMaxVectorLength>>",
     }
 }
 
@@ -1281,14 +1284,16 @@ class AllSubnetBootnodes:
     Dataclass for subnet node info.
     """
 
-    bootnodes: list
+    subnet_bootnodes: list
     node_bootnodes: list
+    registered_bootnodes: list
 
     @classmethod
     def fix_decoded_values(cls, data_decoded: Any) -> "AllSubnetBootnodes":
         """Fixes the values of the AllSubnetBootnodes object."""
-        data_decoded["bootnodes"] = data_decoded["bootnodes"]
+        data_decoded["subnet_bootnodes"] = data_decoded["subnet_bootnodes"]
         data_decoded["node_bootnodes"] = data_decoded["node_bootnodes"]
+        data_decoded["registered_bootnodes"] = data_decoded["registered_bootnodes"]
 
         return cls(**data_decoded)
 
@@ -1336,8 +1341,9 @@ class AllSubnetBootnodes:
     @staticmethod
     def _get_null() -> "AllSubnetBootnodes":
         data = AllSubnetBootnodes(
-            bootnodes=[],
+            subnet_bootnodes=[],
             node_bootnodes=[],
+            registered_bootnodes=[],
         )
         return data
 

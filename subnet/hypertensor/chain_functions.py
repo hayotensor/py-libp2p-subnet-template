@@ -2073,7 +2073,7 @@ class Hypertensor:
         except Exception:
             return None
 
-    def get_bootnodes_formatted(self, subnet_id: int) -> "AllSubnetBootnodes":
+    def get_bootnodes_formatted(self, subnet_id: int) -> Optional["AllSubnetBootnodes"]:
         """
         Get formatted list of subnet nodes classified as Validator
 

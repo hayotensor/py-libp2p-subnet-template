@@ -2,7 +2,8 @@
 Monkey patches for libp2p to improve stability.
 
 These patches fix race conditions and unhandled exceptions in the upstream library.
-Import this module early in your application to apply all patches.
+
+This is a temporary solution until the upstream library issues are fixed.
 """
 
 import logging
@@ -11,10 +12,10 @@ from typing import List
 from libp2p.abc import INetStream
 from libp2p.network.stream.exceptions import StreamReset
 from libp2p.peer.id import ID
+from libp2p.peer.peerstore import PeerStore
 from libp2p.pubsub.exceptions import NoPubsubAttached
 from libp2p.pubsub.gossipsub import GossipSub
 from libp2p.pubsub.pubsub import Pubsub
-from libp2p.stream_muxer.exceptions import MuxedStreamError, MuxedStreamReset
 
 logger = logging.getLogger(__name__)
 
@@ -56,12 +57,15 @@ def patch_get_in_topic_gossipsub_peers_from_minus():
 
 
 def patch_write_msg():
+    """
+    Patch fixes an issue in Pubsub.write_msg where it crashes a peer with StreamReset when another peer is disconnected.
+    """
     _orig_write_msg = Pubsub.write_msg
 
     async def safe_write_msg(self: Pubsub, stream: INetStream, rpc_msg) -> bool:
         try:
             return await _orig_write_msg(self, stream, rpc_msg)
-        except (StreamReset, MuxedStreamReset, MuxedStreamError):
+        except StreamReset:
             try:
                 peer_id = stream.muxed_conn.peer_id
             except Exception:
@@ -72,6 +76,23 @@ def patch_write_msg():
             return False
 
     Pubsub.write_msg = safe_write_msg
+
+
+def patch_maybe_delete_peer_record():
+    """
+    Patch fixes an issue in Pubsub.write_msg where it crashes a peer with StreamReset when another peer is disconnected.
+    """
+    _orig_maybe_delete_peer_record = PeerStore.maybe_delete_peer_record
+
+    async def safe_maybe_delete_peer_record(self: PeerStore, peer_id: ID) -> bool:
+        if peer_id in self.peer_record_map:
+            try:
+                if not self.addrs(peer_id):
+                    self.peer_record_map.pop(peer_id, None)
+            except Exception as e:
+                logger.error(f"Failed to maybe delete peer record for {peer_id}: {e}")
+
+    PeerStore.maybe_delete_peer_record = safe_maybe_delete_peer_record
 
 
 def apply_all_patches():

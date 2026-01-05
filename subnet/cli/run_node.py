@@ -49,16 +49,7 @@ def parse_args() -> argparse.Namespace:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Run a standalone node
-  python -m subnet.cli.run_node
-
-  # Run a node connecting to bootstrap peers
-  python -m subnet.cli.run_node --bootstrap /ip4/127.0.0.1/tcp/31330/p2p/QmBootstrapPeerID
-
-  # Connect to multiple bootstrap peers
-  python -m subnet.cli.run_node \\
-    --bootstrap /ip4/192.168.1.100/tcp/31330/p2p/QmPeer1 \\
-    --bootstrap /ip4/192.168.1.101/tcp/31330/p2p/QmPeer2
+# Run locally with no RPC connection
 
 # Start bootnode (or start bootnode through `run_bootnode`)
 
@@ -67,20 +58,21 @@ python -m subnet.cli.run_node \
 --port 38960 \
 --subnet_id 1 \
 --subnet_node_id 1 \
---no_blockchain_rpc
+--no_blockchain_rpc \
+--is_bootstrap
 
-# Connect to bootnode (if we didn't use alith as the bootnode)
+# Connect to bootnode
 
 python -m subnet.cli.run_node \
---private_key_path alith-ed25519.key \
+--private_key_path baltathar-ed25519.key \
 --port 38961 \
---bootstrap /ip4/127.0.0.1/tcp/38960/p2p/12D3KooWLGmub3LXuKQixBD5XwNW4PtSfnrysYzqs1oj19HxMUCF \
+--bootstrap /ip4/127.0.0.1/tcp/38960/p2p/12D3KooWAkRWUdmXy5tkGQ1oUKxx2W4sXxsWr4ekrcvLCbA3BQTf \
 --subnet_id 1 \
 --subnet_node_id 1 \
 --no_blockchain_rpc
 
 python -m subnet.cli.run_node \
---private_key_path baltathar-ed25519.key \
+--private_key_path charleth-ed25519.key \
 --port 38962 \
 --bootstrap /ip4/127.0.0.1/tcp/38960/p2p/12D3KooWAkRWUdmXy5tkGQ1oUKxx2W4sXxsWr4ekrcvLCbA3BQTf \
 --subnet_id 1 \
@@ -88,7 +80,7 @@ python -m subnet.cli.run_node \
 --no_blockchain_rpc
 
 python -m subnet.cli.run_node \
---private_key_path charleth-ed25519.key \
+--private_key_path dorothy.key \
 --port 38963 \
 --bootstrap /ip4/127.0.0.1/tcp/38960/p2p/12D3KooWAkRWUdmXy5tkGQ1oUKxx2W4sXxsWr4ekrcvLCbA3BQTf \
 --subnet_id 1 \
@@ -96,7 +88,7 @@ python -m subnet.cli.run_node \
 --no_blockchain_rpc
 
 python -m subnet.cli.run_node \
---private_key_path dorothy.key \
+--private_key_path faith.key \
 --port 38964 \
 --bootstrap /ip4/127.0.0.1/tcp/38960/p2p/12D3KooWAkRWUdmXy5tkGQ1oUKxx2W4sXxsWr4ekrcvLCbA3BQTf \
 --subnet_id 1 \
@@ -104,7 +96,7 @@ python -m subnet.cli.run_node \
 --no_blockchain_rpc
 
 python -m subnet.cli.run_node \
---private_key_path faith.key \
+--private_key_path george.key \
 --port 38965 \
 --bootstrap /ip4/127.0.0.1/tcp/38960/p2p/12D3KooWAkRWUdmXy5tkGQ1oUKxx2W4sXxsWr4ekrcvLCbA3BQTf \
 --subnet_id 1 \
@@ -112,7 +104,7 @@ python -m subnet.cli.run_node \
 --no_blockchain_rpc
 
 python -m subnet.cli.run_node \
---private_key_path george.key \
+--private_key_path harry.key \
 --port 38966 \
 --bootstrap /ip4/127.0.0.1/tcp/38960/p2p/12D3KooWAkRWUdmXy5tkGQ1oUKxx2W4sXxsWr4ekrcvLCbA3BQTf \
 --subnet_id 1 \
@@ -120,20 +112,55 @@ python -m subnet.cli.run_node \
 --no_blockchain_rpc
 
 python -m subnet.cli.run_node \
---private_key_path harry.key \
+--private_key_path ian.key \
 --port 38967 \
 --bootstrap /ip4/127.0.0.1/tcp/38960/p2p/12D3KooWAkRWUdmXy5tkGQ1oUKxx2W4sXxsWr4ekrcvLCbA3BQTf \
 --subnet_id 1 \
 --subnet_node_id 7 \
 --no_blockchain_rpc
 
+# Run locally with local RPC connection
+
+# Start bootnode (or start bootnode through `run_bootnode`)
+
+- Register subnet
+- Register subnet nodes
+
+# Start nodes
+
 python -m subnet.cli.run_node \
---private_key_path ian.key \
---port 38968 \
+--private_key_path alith-ed25519.key \
+--port 38960 \
+--subnet_id 1 \
+--subnet_node_id 1 \
+--local_rpc \
+--is_bootstrap
+
+# Connect to bootnode
+
+python -m subnet.cli.run_node \
+--private_key_path baltathar-ed25519.key \
+--port 38961 \
 --bootstrap /ip4/127.0.0.1/tcp/38960/p2p/12D3KooWAkRWUdmXy5tkGQ1oUKxx2W4sXxsWr4ekrcvLCbA3BQTf \
 --subnet_id 1 \
---subnet_node_id 8 \
---no_blockchain_rpc
+--subnet_node_id 1 \
+--local_rpc
+
+python -m subnet.cli.run_node \
+--private_key_path charleth-ed25519.key \
+--port 38962 \
+--bootstrap /ip4/127.0.0.1/tcp/38960/p2p/12D3KooWAkRWUdmXy5tkGQ1oUKxx2W4sXxsWr4ekrcvLCbA3BQTf \
+--subnet_id 1 \
+--subnet_node_id 2 \
+--local_rpc
+
+python -m subnet.cli.run_node \
+--private_key_path dorothy.key \
+--port 38963 \
+--bootstrap /ip4/127.0.0.1/tcp/38960/p2p/12D3KooWAkRWUdmXy5tkGQ1oUKxx2W4sXxsWr4ekrcvLCbA3BQTf \
+--subnet_id 1 \
+--subnet_node_id 3 \
+--local_rpc
 
         """,
     )
@@ -180,7 +207,7 @@ python -m subnet.cli.run_node \
     parser.add_argument(
         "--subnet_node_id",
         type=int,
-        default=1,
+        default=0,
         help="Subnet node ID this node belongs to. ",
     )
 
@@ -264,6 +291,7 @@ def main() -> None:
 
     hotkey = None
     start_epoch = None
+
     if not args.no_blockchain_rpc:
         if args.local_rpc:
             rpc = os.getenv("LOCAL_RPC")
@@ -286,28 +314,52 @@ def main() -> None:
             # Default to using PHRASE if no other options are provided
             hypertensor = Hypertensor(rpc, PHRASE)
 
-        if hotkey is not None:
-            result = hypertensor.interface.query("System", "Account", [hotkey])
-            balance = result.value["data"]["free"]
-            assert balance >= 500, (
-                f"Hotkey must have at least 0.0000000000000005 TENSOR to be a live account, balance is {float(balance / 1e18)}"
-            )
+        if not args.is_bootstrap:
+            if hotkey is not None:
+                result = hypertensor.interface.query("System", "Account", [hotkey])
+                balance = result.value["data"]["free"]
+                assert balance >= 500, (
+                    f"Hotkey must have at least 0.0000000000000005 TENSOR to be a live account, balance is {float(balance / 1e18)}"  # noqa: E501
+                )
 
-        # Check subnet node exists
-        subnet_node_info = hypertensor.get_formatted_get_subnet_node_info(args.subnet_id, args.subnet_node_id)
-        if subnet_node_info is None:
-            raise Exception("Subnet node does not exist")
+            # Check subnet node exists
+            subnet_node_info = hypertensor.get_formatted_get_subnet_node_info(args.subnet_id, args.subnet_node_id)
+            if subnet_node_info is None:
+                raise Exception("Subnet node does not exist")
 
-        start_epoch = subnet_node_info.classification["start_epoch"]
-        if start_epoch is None:
-            raise Exception("Subnet node start epoch is None")
+            if subnet_node_info.hotkey.lower() != hotkey.lower():
+                raise Exception(
+                    f"Subnet node hotkey does not match. Expected: {subnet_node_info.hotkey}, Actual: {hotkey}"
+                )
+
+            if PeerID.from_pubkey(key_pair.public_key).__eq__(subnet_node_info.peer_id):
+                logger.warning(
+                    "Subnet node peer ID does not match. This can be ignored if running a bootnode or client peer. "
+                    f"Expected: {subnet_node_info.peer_id}, Actual: {PeerID.from_pubkey(key_pair.public_key).to_base58()}"  # noqa: E501
+                )
+
+            if PeerID.from_pubkey(key_pair.public_key).__eq__(subnet_node_info.bootnode_peer_id):
+                logger.warning(
+                    "Subnet node bootnode peer ID does not match. This can be ignored if you're not running a bootnode. "  # noqa: E501
+                    f"Expected: {subnet_node_info.bootnode_peer_id}, Actual: {PeerID.from_pubkey(key_pair.public_key).to_base58()}"  # noqa: E501
+                )
+
+            if PeerID.from_pubkey(key_pair.public_key).__eq__(subnet_node_info.client_peer_id):
+                logger.warning(
+                    "Subnet node client peer ID does not match. This can be ignored if you're not running a client peer. "  # noqa: E501
+                    f"Expected: {subnet_node_info.client_peer_id}, Actual: {PeerID.from_pubkey(key_pair.public_key).to_base58()}"  # noqa: E501
+                )
+
+            start_epoch = subnet_node_info.classification["start_epoch"]
+            if start_epoch is None:
+                raise Exception("Subnet node start epoch is None")
     else:
         # Run mock hypertensor blockchain for testing
         # This is a shared database between all local nodes
         hypertensor = LocalMockHypertensor(
             subnet_id=args.subnet_id,
             peer_id=PeerID.from_pubkey(key_pair.public_key),
-            subnet_node_id=args.subnet_node_id,
+            subnet_node_id=args.subnet_node_id if not args.is_bootstrap else 0,
             coldkey="",
             hotkey="",
             bootnode_peer_id="",
@@ -316,6 +368,31 @@ def main() -> None:
         )
         # Give time for database to be written
         # time.sleep(5.0)
+
+    if start_epoch is not None:
+        slot = hypertensor.get_subnet_slot(args.subnet_id)
+        slot = int(str(slot))
+        subnet_epoch_data = hypertensor.get_subnet_epoch_data(slot)
+        current_epoch = subnet_epoch_data.epoch
+        logger.info(f"Current epoch is {current_epoch}")
+        if current_epoch < start_epoch:
+            logger.info(
+                "Keep this running and the node will automatically join the subnet once it's fully registered on-chain"
+            )
+            logger.info(f"Subnet node start epoch is {start_epoch}")
+            while current_epoch < start_epoch:
+                subnet_epoch_data = hypertensor.get_subnet_epoch_data(slot)
+                current_epoch = subnet_epoch_data.epoch
+                logger.info(f"Current epoch is {current_epoch}")
+                if current_epoch >= start_epoch:
+                    break
+
+                seconds_remaining = subnet_epoch_data.seconds_remaining
+                logger.info(
+                    f"Checking next epoch to see if we can join the subnet, sleeping for {seconds_remaining} seconds"
+                )
+                time.sleep(seconds_remaining)
+        logger.info("Subnet node is about to join the subnets DHT")
 
     try:
         server = Server(
@@ -336,12 +413,13 @@ def main() -> None:
         logger.error(f"Fatal error: {e}", exc_info=True)
         sys.exit(1)
     finally:
-        try:
-            # Delete subnet node from mock db if it was created
-            hypertensor.db.delete_subnet_node(args.subnet_id, args.subnet_node_id)
-            logger.info("Removed subnet node from mock db")
-        except Exception as e:
-            logger.error(f"Failed to delete subnet node from mock db: {e}")
+        if isinstance(hypertensor, LocalMockHypertensor):
+            try:
+                # Delete subnet node from mock db if it was created
+                hypertensor.db.delete_subnet_node(args.subnet_id, args.subnet_node_id)
+                logger.info("Removed subnet node from mock db")
+            except Exception as e:
+                logger.error(f"Failed to delete subnet node from mock db: {e}")
 
 
 if __name__ == "__main__":

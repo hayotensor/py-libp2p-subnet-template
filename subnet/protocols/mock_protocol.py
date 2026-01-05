@@ -2,11 +2,6 @@
 
 import logging
 
-from multiaddr import (
-    Multiaddr,
-)
-import varint
-
 from libp2p.abc import (
     IHost,
     INetStream,
@@ -18,11 +13,15 @@ from libp2p.peer.id import ID as PeerID
 from libp2p.tools.utils import (
     info_from_p2p_addr,
 )
-from subnet.utils.subnet_info_tracker import SubnetInfoTracker
+from multiaddr import (
+    Multiaddr,
+)
+import varint
 
-from .pb.mock_protocol_pb2 import (
+from subnet.protocols.pb.mock_protocol_pb2 import (
     MockProtocolMessage,
 )
+from subnet.utils.hypertensor.subnet_info_tracker import SubnetInfoTracker
 
 # Configure logging
 logging.basicConfig(
@@ -51,6 +50,7 @@ class MockProtocol:
         Args:
             host: The libp2p host instance
             subnet_info_tracker: The subnet info tracker instance
+
         """
         self.host = host
         self.subnet_info_tracker = subnet_info_tracker

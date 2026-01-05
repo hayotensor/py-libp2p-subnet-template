@@ -1,6 +1,6 @@
 # py-libp2p-subnet
 
-A Python libp2p subnet template framework implementation.
+A subnet template framework implementation.
 
 ⚠️ This is a work in progress and is not yet ready for production use.
 
@@ -51,41 +51,58 @@ pytest tests/test_example.py
 
 ### Running Locally
 
-#### Start Bootnode
+The the subnetwork locally with no blockchain integration for testing purposes.
+
+#### Start Bootnode (Alith)
+
+Start the bootnode that doesn't participate in consensus
 
 ```bash
-python -m subnet.cli.run_bootnode_v2 \
---identity_path bootnode-ed25519.key \
---port 38959
+python -m subnet.cli.run_node \
+--private_key_path alith-ed25519.key \
+--port 38960 \
+--subnet_id 1 \
+--no_blockchain_rpc \
+--is_bootstrap \
+--no_blockchain_rpc
 ```
 
 #### Start Peers (Nodes)
 
-##### Start Node 1 (Alith)
+##### Start Node 1 (Baltathar)
 
 ```bash
-python -m subnet.cli.run_node_v2 \
---identity_path alith-ed25519.key \
---port 38960 \
---bootstrap /ip4/127.0.0.1/tcp/38959/p2p/12D3KooWLGmub3LXuKQixBD5XwNW4PtSfnrysYzqs1oj19HxMUCF
-```
-
-##### Start Node 2 (Baltathar)
-
-```bash
-python -m subnet.cli.run_node_v2 \
---identity_path baltathar-ed25519.key \
+python -m subnet.cli.run_node \
+--private_key_path baltathar-ed25519.key \
 --port 38961 \
---bootstrap /ip4/127.0.0.1/tcp/38959/p2p/12D3KooWLGmub3LXuKQixBD5XwNW4PtSfnrysYzqs1oj19HxMUCF
+--bootstrap /ip4/127.0.0.1/tcp/38960/p2p/12D3KooWAkRWUdmXy5tkGQ1oUKxx2W4sXxsWr4ekrcvLCbA3BQTf \
+--subnet_id 1 \
+--subnet_node_id 1 \
+--no_blockchain_rpc
 ```
 
-##### Start Node 3 (Charleth)
+##### Start Node 2 (Charleth)
 
 ```bash
-python -m subnet.cli.run_node_v2 \
---identity_path charleth-ed25519.key \
+python -m subnet.cli.run_node \
+--private_key_path charleth-ed25519.key \
 --port 38962 \
---bootstrap /ip4/127.0.0.1/tcp/38959/p2p/12D3KooWLGmub3LXuKQixBD5XwNW4PtSfnrysYzqs1oj19HxMUCF
+--bootstrap /ip4/127.0.0.1/tcp/38960/p2p/12D3KooWAkRWUdmXy5tkGQ1oUKxx2W4sXxsWr4ekrcvLCbA3BQTf \
+--subnet_id 1 \
+--subnet_node_id 2 \
+--no_blockchain_rpc
+```
+
+##### Start Node 3 (Dorothy)
+
+```bash
+python -m subnet.cli.run_node \
+--private_key_path dorothy.key \
+--port 38963 \
+--bootstrap /ip4/127.0.0.1/tcp/38960/p2p/12D3KooWAkRWUdmXy5tkGQ1oUKxx2W4sXxsWr4ekrcvLCbA3BQTf \
+--subnet_id 1 \
+--subnet_node_id 3 \
+--no_blockchain_rpc
 ```
 
 ### Running Local RPC (Local BLockchain)
@@ -118,33 +135,18 @@ register_subnet \
 
 #### Register Nodes
 
-##### Register Node01 (Alith)
+##### Register Node ID 1 (Baltathar, baltathar-ed25519.key)
 
-```bash
-register_node \
---subnet_id 1 \
---hotkey 0x317D7a5a2ba5787A99BE4693Eb340a10C71d680b \
---peer_id 12D3KooWMwW1VqH7uWtUc5UGoyMJp1dG26Nkosc6RkRJ7RNiW6Cb \
---bootnode_peer_id 12D3KooWLGmub3LXuKQixBD5XwNW4PtSfnrysYzqs1oj19HxMUCF \
---bootnode /ip4/127.00.1/tcp/31331/p2p/12D3KooWMwW1VqH7uWtUc5UGoyMJp1dG26Nkosc6RkRJ7RNiW6Cc \
---client_peer_id 12D3KooWMwW1VqH7uWtUc5UGoyMJp1dG26Nkosc6RkRJ7RNiW6Cd \
---delegate_reward_rate 0.125 \
---stake_to_be_added 200.00 \
---max_burn_amount 100.00 \
---private_key "0x5fb92d6e98884f76de468fa3f6278f8807c48bebc13595d45af5bdc4da702133" \
---local_rpc
-```
-
-##### Register Node02 (Baltathar)
+We use alith-ed25519.key as the bootnode of node ID to pass validation mechanisms like proof-of-stake and connection maintenance.
 
 ```bash
 register_node \
 --subnet_id 1 \
 --hotkey 0xc30fE91DE91a3FA79E42Dfe7a01917d0D92D99D7 \
---peer_id 12D3KooWM5J4zS17XR2LHGZgRpmzbeqg4Eibyq8sbRLwRuWxJqsV \
---bootnode_peer_id 12D3KooWM5J4zS17XR2LHGZgRpmzbeqg4Eibyq8sbRLwRuWxJqsW \
---bootnode /ip4/127.00.1/tcp/31332/p2p/12D3KooWM5J4zS17XR2LHGZgRpmzbeqg4Eibyq8sbRLwRuWxJqsW \
---client_peer_id 12D3KooWM5J4zS17XR2LHGZgRpmzbeqg4Eibyq8sbRLwRuWxJqsX \
+--peer_id 12D3KooWBqJu85tnb3WciU3LcXhCmTdkvMi4k1Zq3BshUPhVfTui \
+--bootnode_peer_id 12D3KooWAkRWUdmXy5tkGQ1oUKxx2W4sXxsWr4ekrcvLCbA3BQTf \
+--bootnode /ip4/127.00.1/tcp/38960/p2p/12D3KooWBqJu85tnb3WciU3LcXhCmTdkvMi4k1Zq3BshUPhVfTui \
+--client_peer_id 12D3KooWBqJu85tnb3WciU3LcXhCmTdkvMi4k1Zq3BshUPhVfTuk \
 --delegate_reward_rate 0.125 \
 --stake_to_be_added 200.00 \
 --max_burn_amount 100.00 \
@@ -152,20 +154,54 @@ register_node \
 --local_rpc
 ```
 
-##### Register Node03 (Charleth)
+##### Register Node ID 2 (Charleth, charleth-ed25519.key)
 
 ```bash
 register_node \
 --subnet_id 1 \
 --hotkey 0x2f7703Ba9953d422294079A1CB32f5d2B60E38EB \
---peer_id 12D3KooWKxAhu5U8SreDZpokVkN6ciTBbsHxteo3Vmq6Cpuf8KEt \
---bootnode_peer_id 12D3KooWKxAhu5U8SreDZpokVkN6ciTBbsHxteo3Vmq6Cpuf8KEu \
---bootnode /ip4/127.00.1/tcp/31332/p2p/12D3KooWKxAhu5U8SreDZpokVkN6ciTBbsHxteo3Vmq6Cpuf8KEu \
---client_peer_id 12D3KooWKxAhu5U8SreDZpokVkN6ciTBbsHxteo3Vmq6Cpuf8KEv \
+--peer_id 12D3KooW9xdCjPXcHcyhunPZxCTdrCcbxEGh4s2PGvtoot2iz4qk \
+--bootnode_peer_id 12D3KooW9xdCjPXcHcyhunPZxCTdrCcbxEGh4s2PGvtoot2iz4ql \
+--bootnode /ip4/127.00.1/tcp/38962/p2p/12D3KooW9xdCjPXcHcyhunPZxCTdrCcbxEGh4s2PGvtoot2iz4qk \
+--client_peer_id 12D3KooW9xdCjPXcHcyhunPZxCTdrCcbxEGh4s2PGvtoot2iz4qm \
 --delegate_reward_rate 0.125 \
 --stake_to_be_added 200.00 \
 --max_burn_amount 100.00 \
 --private_key "0x0b6e18cafb6ed99687ec547bd28139cafdd2bffe70e6b688025de6b445aa5c5b" \
+--local_rpc
+```
+
+##### Register Node ID 3 (Dorothy, dorothy.key)
+
+```bash
+register_node \
+--subnet_id 1 \
+--hotkey 0x294BFfC18b5321264f55c517Aca2963bEF9D29EA \
+--peer_id 12D3KooWD1BgwEJGUXz3DsKVXGFq3VcmHRjeX56NKpyEa1QAP6uV \
+--bootnode_peer_id 12D3KooWD1BgwEJGUXz3DsKVXGFq3VcmHRjeX56NKpyEa1QAP6uW \
+--bootnode /ip4/127.00.1/tcp/38963/p2p/12D3KooWD1BgwEJGUXz3DsKVXGFq3VcmHRjeX56NKpyEa1QAP6uV \
+--client_peer_id 12D3KooWD1BgwEJGUXz3DsKVXGFq3VcmHRjeX56NKpyEa1QAP6uX \
+--delegate_reward_rate 0.125 \
+--stake_to_be_added 200.00 \
+--max_burn_amount 100.00 \
+--private_key "0x39539ab1876910bbf3a223d84a29e28f1cb4e2e456503e7e91ed39b2e7223d68" \
+--local_rpc
+```
+
+##### Optional Node ID 4 (Faith, faith.key)
+
+```bash
+register_node \
+--subnet_id 1 \
+--hotkey 0xD4eb2503fA9F447CCa7b78D9a86F2fdbc964401e \
+--peer_id 12D3KooWF963f4jiFX26xDKu7BrqtVYTx4Jk8rUQQUxwiJQjVFWH \
+--bootnode_peer_id 12D3KooWF963f4jiFX26xDKu7BrqtVYTx4Jk8rUQQUxwiJQjVFWI \
+--bootnode /ip4/127.00.1/tcp/38964/p2p/12D3KooWF963f4jiFX26xDKu7BrqtVYTx4Jk8rUQQUxwiJQjVFWH \
+--client_peer_id 12D3KooWF963f4jiFX26xDKu7BrqtVYTx4Jk8rUQQUxwiJQjVFWJ \
+--delegate_reward_rate 0.125 \
+--stake_to_be_added 200.00 \
+--max_burn_amount 100.00 \
+--private_key "0xb9d2ea9a615f3165812e8d44de0d24da9bbd164b65c4f0573e1ce2c8dbd9c8df" \
 --local_rpc
 ```
 
@@ -174,51 +210,66 @@ register_node \
 ##### Start Bootnode
 
 ```bash
-python -m subnet.cli.run_bootnode_v2 \
---identity_path bootnode-ed25519.key \
---port 38959 \
+python -m subnet.cli.run_node \
+--private_key_path alith-ed25519.key \
+--port 38960 \
+--subnet_id 1 \
+--is_bootstrap \
 --local_rpc
 ```
 
-##### Start Node01 (Alith)
+##### Start Node ID 1 (Baltathar)
 
-We use the bootnodes peer id (bootnode-ed25519.key) in node01's bootnode so Alith can connect (subnet requires on-chain proof-of-stake for connection).
+We use the bootnodes peer id (alith-ed25519.key) in node01's bootnode so Alith can connect (subnet requires on-chain proof-of-stake for connection).
 
 ```bash
 python -m subnet.cli.run_node \
---identity_path alith.key \
---port 31331 \
---bootstrap /ip4/127.0.0.1/tcp/38959/p2p/12D3KooWLGmub3LXuKQixBD5XwNW4PtSfnrysYzqs1oj19HxMUCF \
+--private_key_path baltathar-ed25519.key \
+--port 38961 \
+--bootstrap /ip4/127.0.0.1/tcp/38960/p2p/12D3KooWAkRWUdmXy5tkGQ1oUKxx2W4sXxsWr4ekrcvLCbA3BQTf \
 --subnet_id 1 \
 --subnet_node_id 1 \
---local_rpc \
---tensor_private_key "0x883189525adc71f940606d02671bd8b7dfe3b2f75e2a6ed1f5179ac794566b40"
-```
-
-##### Start Node02 (Baltathar)
-
-```bash
-python -m subnet.cli.run_node \
---identity_path baltathar.key \
---port 31332 \
---bootstrap /ip4/127.0.0.1/tcp/38959/p2p/12D3KooWLGmub3LXuKQixBD5XwNW4PtSfnrysYzqs1oj19HxMUCF \
---subnet_id 1 \
---subnet_node_id 2 \
 --local_rpc \
 --tensor_private_key "0x6cbf451fc5850e75cd78055363725dcf8c80b3f1dfb9c29d131fece6dfb72490"
 ```
 
-##### Start Node03 (Charleth)
+##### Start Node ID 2 (Charleth)
 
 ```bash
 python -m subnet.cli.run_node \
---identity_path charleth.key \
---port 31333 \
---bootstrap /ip4/127.0.0.1/tcp/38959/p2p/12D3KooWLGmub3LXuKQixBD5XwNW4PtSfnrysYzqs1oj19HxMUCF \
+--private_key_path charleth-ed25519.key \
+--port 38962 \
+--bootstrap /ip4/127.0.0.1/tcp/38960/p2p/12D3KooWAkRWUdmXy5tkGQ1oUKxx2W4sXxsWr4ekrcvLCbA3BQTf \
+--subnet_id 1 \
+--subnet_node_id 2 \
+--local_rpc \
+--tensor_private_key "0x51b7c50c1cd27de89a361210431e8f03a7ddda1a0c8c5ff4e4658ca81ac02720"
+```
+
+##### Start Node ID 3 (Dorothy)
+
+```bash
+python -m subnet.cli.run_node \
+--private_key_path dorothy.key \
+--port 38963 \
+--bootstrap /ip4/127.0.0.1/tcp/38960/p2p/12D3KooWAkRWUdmXy5tkGQ1oUKxx2W4sXxsWr4ekrcvLCbA3BQTf \
 --subnet_id 1 \
 --subnet_node_id 3 \
 --local_rpc \
---tensor_private_key "0x51b7c50c1cd27de89a361210431e8f03a7ddda1a0c8c5ff4e4658ca81ac02720"
+--tensor_private_key "0xa1983be71acf4b323612067ac9ae91308da19c2956b227618e8c611bd4746056"
+```
+
+##### Optional Start Node ID 4 (Faith)
+
+```bash
+python -m subnet.cli.run_node \
+--private_key_path faith.key \
+--port 38964 \
+--bootstrap /ip4/127.0.0.1/tcp/38960/p2p/12D3KooWAkRWUdmXy5tkGQ1oUKxx2W4sXxsWr4ekrcvLCbA3BQTf \
+--subnet_id 1 \
+--subnet_node_id 4 \
+--local_rpc \
+--tensor_private_key "0x1dd4fd336c448379240f5e0ce4a57d574481c9981260e036f3877af6b663c927"
 ```
 
 #### Delegate Stake To Subnet

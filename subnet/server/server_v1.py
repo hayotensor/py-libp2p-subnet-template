@@ -2,8 +2,6 @@ from collections.abc import Mapping
 import logging
 from typing import TYPE_CHECKING, List, cast
 
-import trio
-
 from libp2p import (
     new_host,
 )
@@ -43,29 +41,31 @@ from libp2p.stream_muxer.mplex.mplex import MPLEX_PROTOCOL_ID, Mplex
 from libp2p.stream_muxer.mplex.mplex_stream import MplexStream
 from libp2p.tools.async_service import background_trio_service
 from libp2p.utils.varint import encode_uvarint
+import trio
+
 from subnet.config import GOSSIPSUB_PROTOCOL_ID
 from subnet.consensus.consensus import Consensus
 from subnet.db.database import RocksDB
 from subnet.hypertensor.chain_functions import Hypertensor
 from subnet.hypertensor.mock.local_chain_functions import LocalMockHypertensor
-from subnet.utils.bootstrap import connect_to_bootstrap_nodes
 from subnet.utils.connection import (
     demonstrate_random_walk_discovery,
     maintain_connections,
 )
-from subnet.utils.custom_score_params import custom_score_params
-from subnet.utils.gossip_receiver import GossipReceiver
-from subnet.utils.heartbeat import (
-    HEARTBEAT_TOPIC,
-    publish_loop,
-)
+from subnet.utils.connections.bootstrap import connect_to_bootstrap_nodes
+from subnet.utils.gossipsub.gossip_receiver import GossipReceiver
+from subnet.utils.hypertensor.subnet_info_tracker import SubnetInfoTracker
 from subnet.utils.pos.pos_transport import (
     PROTOCOL_ID as POS_PROTOCOL_ID,
     POSTransport,
 )
 from subnet.utils.pos.proof_of_stake import ProofOfStake
-from subnet.utils.pubsub_validation import HeartbeatPredicate, HeartbeatValidator
-from subnet.utils.subnet_info_tracker import SubnetInfoTracker
+from subnet.utils.pubsub.custom_score_params import custom_score_params
+from subnet.utils.pubsub.heartbeat import (
+    HEARTBEAT_TOPIC,
+    publish_loop,
+)
+from subnet.utils.pubsub.pubsub_validation import AsyncHeartbeatMsgValidator, AsyncPubsubTopicValidator
 
 if TYPE_CHECKING:
     from libp2p.network.swarm import Swarm
@@ -397,15 +397,15 @@ class Server:
 
                         pubsub.set_topic_validator(
                             HEARTBEAT_TOPIC,
-                            HeartbeatValidator.from_predicate_class(
-                                HeartbeatPredicate,
+                            AsyncPubsubTopicValidator.from_predicate_class(
+                                AsyncHeartbeatMsgValidator,
                                 host.get_id(),
                                 subnet_info_tracker,
                                 self.hypertensor,
                                 self.subnet_id,
                                 proof_of_stake,
                             ).validate,
-                            is_async_validator=False,
+                            is_async_validator=True,
                         )
 
                         # Connect to bootstrap nodes AFTER starting services

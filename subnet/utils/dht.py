@@ -1,11 +1,11 @@
 from typing import Callable
 
-import multihash
-
 from libp2p.peer.id import ID
 from libp2p.records.pubkey import PublicKeyValidator, unmarshal_public_key
 from libp2p.records.utils import InvalidRecordType, split_key
 from libp2p.records.validator import Validator
+import multihash
+
 from subnet.hypertensor.chain_functions import EpochData
 
 

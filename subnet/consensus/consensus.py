@@ -2,10 +2,10 @@ from dataclasses import asdict
 import logging
 from typing import List
 
-import trio
-
 from libp2p.kad_dht import KadDHT
 from libp2p.peer.id import ID as PeerID
+import trio
+
 from subnet.consensus.utils import (
     compare_consensus_data,
     did_node_attest,
@@ -16,8 +16,8 @@ from subnet.hypertensor.chain_data import SubnetNodeConsensusData
 from subnet.hypertensor.chain_functions import Hypertensor, SubnetNodeClass
 from subnet.hypertensor.config import BLOCK_SECS
 from subnet.hypertensor.mock.local_chain_functions import LocalMockHypertensor
-from subnet.utils.heartbeat import HEARTBEAT_TOPIC
-from subnet.utils.subnet_info_tracker import SubnetInfoTracker
+from subnet.utils.hypertensor.subnet_info_tracker import SubnetInfoTracker
+from subnet.utils.pubsub.heartbeat import HEARTBEAT_TOPIC
 
 # Configure logging
 logging.basicConfig(
@@ -66,36 +66,34 @@ class Consensus:
 
         These scores must be deterministic - See docs
         """
-        """
-        It's impossible to get every Peer ID in the (a large) network so we test using
-        the test IDs to get the heartbeat
-
-        In production: We use the blockchain to get the list of all peer IDs
-        """
         # Get each subnet node ID that is included onchain AND in the subnet
-        included_nodes = self.subnet_info_tracker.get_nodes(SubnetNodeClass.Included)
+        # included_nodes = self.subnet_info_tracker.get_nodes(SubnetNodeClass.Included)
+        included_nodes = await self.subnet_info_tracker.get_nodes_v2(current_epoch, SubnetNodeClass.Included)
 
-        print("Included nodes: ", included_nodes)
+        # included_nodes = self.hypertensor.get_min_class_subnet_nodes_formatted(
+        #     subnet_id=self.subnet_id,
+        #     subnet_epoch=current_epoch,
+        #     min_class=SubnetNodeClass.Included,
+        # )
+
+        logger.info(f"Included nodes: {included_nodes}")
 
         subnet_node_ids = []
         for node in included_nodes:
-            logger.info(
+            logger.debug(
                 f"Checking is heartbeat exists under nmap key {HEARTBEAT_TOPIC}:{current_epoch - 1}:{node.peer_id}"
             )
 
-            exists = (
-                self.db.nmap_get(HEARTBEAT_TOPIC, f"{current_epoch - 1}:{node.peer_id}")
-                is not None
-            )
+            exists = self.db.nmap_get(HEARTBEAT_TOPIC, f"{current_epoch - 1}:{node.peer_id}") is not None
             if not exists:
-                logger.info(
+                logger.debug(
                     f"Heartbeat does not exist for node ID {node.subnet_node_id} for epoch {current_epoch - 1}"
                 )
                 continue
 
             subnet_node_ids.append(node.subnet_node_id)
 
-        print("Subnet node IDs: ", subnet_node_ids)
+        logger.info(f"Subnet node IDs: {subnet_node_ids}")
 
         """
             {
@@ -108,8 +106,7 @@ class Consensus:
             We use asdict() when submitting
         """
         consensus_score_list = [
-            SubnetNodeConsensusData(subnet_node_id=node_id, score=int(1e18))
-            for node_id in subnet_node_ids
+            SubnetNodeConsensusData(subnet_node_id=node_id, score=int(1e18)) for node_id in subnet_node_ids
         ]
 
         print("Consensus score list: ", consensus_score_list)
@@ -135,18 +132,14 @@ class Consensus:
         while not self.stop.is_set():
             epoch_data = self.hypertensor.get_epoch_data()
             current_epoch = epoch_data.epoch
-            logger.info(
-                f"Current epoch: {current_epoch}, checking subnet activation status"
-            )
+            logger.info(f"Current epoch: {current_epoch}, checking subnet activation status")
 
             if current_epoch != last_epoch:
                 subnet_info = self.hypertensor.get_formatted_subnet_info(self.subnet_id)
                 if subnet_info is None or subnet_info == None:  # noqa: E711
                     # None means the subnet is likely deactivated
                     if errors_count > max_errors:
-                        logger.warning(
-                            "Cannot find subnet ID: %s, shutting down", self.subnet_id
-                        )
+                        logger.warning("Cannot find subnet ID: %s, shutting down", self.subnet_id)
                         self.shutdown()
                         subnet_active = False
                         break
@@ -157,9 +150,7 @@ class Consensus:
                         errors_count = errors_count + 1
                 else:
                     if subnet_info.state == "Active":
-                        logger.info(
-                            f"Subnet ID {self.subnet_id} is active, starting consensus"
-                        )
+                        logger.info(f"Subnet ID {self.subnet_id} is active, starting consensus")
                         subnet_active = True
                         break
                     else:
@@ -176,6 +167,10 @@ class Consensus:
                     self.subnet_info_tracker.get_seconds_remaining_until_next_epoch(),
                 )
             )
+
+        logger.info(
+            f"{'Subnet is active, starting consensus' if subnet_active else 'Subnet is not active, not starting consensus'}"  # noqa: E501
+        )
 
         return subnet_active
 
@@ -223,11 +218,7 @@ class Consensus:
 
                 last_epoch = current_epoch
 
-            await trio.sleep(
-                max(
-                    0, self.subnet_info_tracker.get_seconds_remaining_until_next_epoch()
-                )
-            )
+            await trio.sleep(max(0, self.subnet_info_tracker.get_seconds_remaining_until_next_epoch()))
 
         return True
 
@@ -253,9 +244,7 @@ class Consensus:
                 # Start on fresh epoch
                 if started is False:
                     started = True
-                    subnet_epoch_data = self.hypertensor.get_subnet_epoch_data(
-                        self.subnet_info_tracker.slot
-                    )
+                    subnet_epoch_data = self.hypertensor.get_subnet_epoch_data(self.subnet_info_tracker.slot)
                     logger.info(
                         f"SubnetInfoTracker seconds remaining {self.subnet_info_tracker.get_seconds_remaining_until_next_epoch()}"
                     )
@@ -269,13 +258,9 @@ class Consensus:
                     logged_started = True
 
                 # current_epoch = self.subnet_info_tracker.epoch_data.epoch
-                current_epoch = self.hypertensor.get_subnet_epoch_data(
-                    self.subnet_info_tracker.slot
-                ).epoch
+                current_epoch = self.hypertensor.get_subnet_epoch_data(self.subnet_info_tracker.slot).epoch
 
-                logger.info(
-                    f"SubnetInfoTracker current_epoch {self.subnet_info_tracker.epoch_data.epoch}"
-                )
+                logger.info(f"SubnetInfoTracker current_epoch {self.subnet_info_tracker.epoch_data.epoch}")
                 logger.info(
                     f"SubnetInfoTracker seconds_remaining {self.subnet_info_tracker.get_seconds_remaining_until_next_epoch()}"
                 )
@@ -294,9 +279,7 @@ class Consensus:
 
                 try:
                     # Get fresh epoch
-                    subnet_epoch_data = self.hypertensor.get_subnet_epoch_data(
-                        self.subnet_info_tracker.slot
-                    )
+                    subnet_epoch_data = self.hypertensor.get_subnet_epoch_data(self.subnet_info_tracker.slot)
 
                     logger.info(
                         f"Waiting for next epoch {current_epoch + 1} in {subnet_epoch_data.seconds_remaining} seconds"
@@ -356,9 +339,7 @@ class Consensus:
             # subnet_epoch_data = self.subnet_info_tracker.epoch_data
             # _current_epoch = subnet_epoch_data.epoch
 
-            subnet_epoch_data = self.hypertensor.get_subnet_epoch_data(
-                self.subnet_info_tracker.slot
-            )
+            subnet_epoch_data = self.hypertensor.get_subnet_epoch_data(self.subnet_info_tracker.slot)
             _current_epoch = subnet_epoch_data.epoch
 
             if _current_epoch != current_epoch:
@@ -374,19 +355,15 @@ class Consensus:
         if validator is None or validator == None:  # noqa: E711
             return
 
-        logger.info(
-            f"Elected validator on epoch {current_epoch} is node ID {validator}"
-        )
+        logger.info(f"Elected validator on epoch {current_epoch} is node ID {validator}")
 
         if validator == self.subnet_node_id:
             logger.info(
-                f"🎖️ Acting as elected validator for epoch {current_epoch} and attempting to propose an attestation to the blockchain"
+                f"🎖️ Acting as elected validator for epoch {current_epoch} and attempting to propose an attestation to the blockchain"  # noqa: E501
             )
 
             # See if attestation proposal submitted
-            consensus_data = self.hypertensor.get_consensus_data_formatted(
-                self.subnet_id, current_epoch
-            )
+            consensus_data = self.hypertensor.get_consensus_data_formatted(self.subnet_id, current_epoch)
 
             print("consensus_data: ", consensus_data)
 
@@ -415,17 +392,13 @@ class Consensus:
 
                 Any successful epoch following will remove these penalties on the subnet
                 """
-                self.hypertensor.propose_attestation(
-                    self.subnet_id, data=[asdict(s) for s in scores]
-                )
+                self.hypertensor.propose_attestation(self.subnet_id, data=[asdict(s) for s in scores])
             else:
-                self.hypertensor.propose_attestation(
-                    self.subnet_id, data=[asdict(s) for s in scores]
-                )
+                self.hypertensor.propose_attestation(self.subnet_id, data=[asdict(s) for s in scores])
 
         elif validator is not None:
             logger.info(
-                f"🗳️ Attempting to act as attestor/voter for epoch {current_epoch}"
+                f"🗳️ Attempting to act as attestor/voter for epoch {current_epoch}, attesting validator ID {validator}"
             )
 
             consensus_data = None  # Fetch one time once not None
@@ -433,33 +406,24 @@ class Consensus:
             while not self.stop.is_set():
                 # Check consensus data exists in case attest fails
                 if consensus_data is None or consensus_data == None:  # noqa: E711
-                    consensus_data = self.hypertensor.get_consensus_data_formatted(
-                        self.subnet_id, current_epoch
-                    )
+                    consensus_data = self.hypertensor.get_consensus_data_formatted(self.subnet_id, current_epoch)
 
-                logger.info(f"Consensus data: {consensus_data}")
+                logger.debug(f"Consensus data: {consensus_data}")
 
                 # subnet_epoch_data = self.subnet_info_tracker.epoch_data
                 # _current_epoch = subnet_epoch_data.epoch
-                subnet_epoch_data = self.hypertensor.get_subnet_epoch_data(
-                    self.subnet_info_tracker.slot
-                )
+                subnet_epoch_data = self.hypertensor.get_subnet_epoch_data(self.subnet_info_tracker.slot)
                 _current_epoch = subnet_epoch_data.epoch
 
                 # If next epoch or validator took too long, move onto next steps
-                if (
-                    _current_epoch != current_epoch
-                    or subnet_epoch_data.percent_complete > 0.25
-                ):
+                if _current_epoch != current_epoch or subnet_epoch_data.percent_complete > 0.25:
                     logger.info(
-                        "Skipping attestation, validator took too long to submit consensus data or next epoch"
+                        f"Skipping attestation, validator ID {validator} took too long to submit consensus data or next epoch"  # noqa: E501
                     )
                     break
 
                 if consensus_data is None or consensus_data == None:  # noqa: E711
-                    logger.info(
-                        "Waiting for consensus data to be submitted, checking again in 1 block"
-                    )
+                    logger.info("Waiting for consensus data to be submitted, checking again in 1 block")
                     await trio.sleep(BLOCK_SECS)
                     continue
 
@@ -472,7 +436,7 @@ class Consensus:
                     or consensus_data.remove_queue_node_id is not None
                 ):
                     logger.info(
-                        "Skipping attestation, validator used prioritize_queue_node_id or remove_queue_node_id"
+                        f"Skipping attestation, validator ID {validator} used prioritize_queue_node_id or remove_queue_node_id"  # noqa: E501
                     )
                     break
 
@@ -481,9 +445,7 @@ class Consensus:
                 """
                 Get all of the hosters inference outputs they stored to the DHT
                 """
-                if 1.0 == compare_consensus_data(
-                    my_data=scores, validator_data=validator_data
-                ):
+                if 1.0 == compare_consensus_data(my_data=scores, validator_data=validator_data):
                     # Check if we can attest
                     # This is important in case a node sets emergency validators
                     if not _is_validator_or_attestor:
@@ -493,9 +455,7 @@ class Consensus:
                         # If False, break
                         # If True, check once
                         if not _is_validator_or_attestor:
-                            logger.info(
-                                "Not attestor or validator, moving to next epoch"
-                            )
+                            logger.info("Not attestor or validator, moving to next epoch")
                             break
 
                     # Check if we already attested
@@ -504,14 +464,12 @@ class Consensus:
                         break
 
                     logger.info(
-                        f"✅ Elected validator's data matches for epoch {current_epoch}, attesting their data"
+                        f"✅ Elected validator ID {validator} data matches for epoch {current_epoch}, attesting their data"
                     )
 
                     receipt = self.hypertensor.attest(self.subnet_id)
 
-                    if isinstance(
-                        self.hypertensor, LocalMockHypertensor
-                    ):  # don't check receipt if using mock
+                    if isinstance(self.hypertensor, LocalMockHypertensor):  # don't check receipt if using mock
                         break
 
                     if receipt.is_success:
@@ -520,7 +478,7 @@ class Consensus:
                         await trio.sleep(BLOCK_SECS)
                 else:
                     logger.info(
-                        f"❌ Data doesn't match validator's for epoch {current_epoch}, moving forward with no attetation"
+                        f"❌ Data doesn't match validator ID {validator} data for epoch {current_epoch}, moving forward with no attetation"
                     )
 
                     break

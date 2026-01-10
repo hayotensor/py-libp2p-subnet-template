@@ -302,6 +302,7 @@ class Consensus:
 
                     pass  # Timeout reached
                 except Exception:
+                    logger.exception("Exception in epoch loop")
                     pass
             except Exception as e:
                 logger.warning(e, exc_info=True)

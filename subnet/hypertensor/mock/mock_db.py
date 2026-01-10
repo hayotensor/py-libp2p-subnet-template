@@ -41,15 +41,42 @@ class MockDatabase:
         c = self.conn.cursor()
 
         # Nodes table
+        # c.execute(
+        #     """
+        #     CREATE TABLE IF NOT EXISTS subnet_nodes (
+        #         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        #         subnet_id INTEGER,
+        #         subnet_node_id INTEGER UNIQUE,
+        #         peer_id TEXT,
+        #         coldkey TEXT,
+        #         hotkey TEXT,
+        #         bootnode_peer_id TEXT,
+        #         client_peer_id TEXT,
+        #         bootnode TEXT,
+        #         identity TEXT,
+        #         classification TEXT,
+        #         delegate_reward_rate INTEGER,
+        #         last_delegate_reward_rate_update INTEGER,
+        #         unique_id TEXT,
+        #         non_unique TEXT,
+        #         stake_balance INTEGER,
+        #         node_delegate_stake_balance INTEGER,
+        #         penalties INTEGER,
+        #         reputation INTEGER,
+        #         info_json TEXT
+        #     )
+        #     """
+        # )
+
         c.execute(
             """
             CREATE TABLE IF NOT EXISTS subnet_nodes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 subnet_id INTEGER,
                 subnet_node_id INTEGER UNIQUE,
-                peer_id TEXT,
                 coldkey TEXT,
                 hotkey TEXT,
+                peer_id TEXT,
                 bootnode_peer_id TEXT,
                 client_peer_id TEXT,
                 bootnode TEXT,
@@ -60,9 +87,13 @@ class MockDatabase:
                 unique_id TEXT,
                 non_unique TEXT,
                 stake_balance INTEGER,
+                total_node_delegate_stake_shares INTEGER,
                 node_delegate_stake_balance INTEGER,
-                penalties INTEGER,
-                reputation INTEGER,
+                coldkey_reputation TEXT,
+                subnet_node_reputation INTEGER,
+                node_slot_index INTEGER,
+                consecutive_idle_epochs INTEGER,
+                consecutive_included_epochs INTEGER,
                 info_json TEXT
             )
             """
@@ -112,29 +143,43 @@ class MockDatabase:
     def insert_subnet_node(self, subnet_id: int, node_info: dict):
         print(f"Inserting node, subnet_id={subnet_id}, node_info={node_info}")
         classification_json = json.dumps(_serialize_for_json(node_info.get("classification", {})))
+        coldkey_reputation_json = json.dumps(_serialize_for_json(node_info.get("coldkey_reputation", {})))
 
         c = self.conn.cursor()
         c.execute(
+            # """
+            # INSERT OR REPLACE INTO subnet_nodes (
+            #     subnet_id, subnet_node_id, peer_id,
+            #     coldkey, hotkey, bootnode_peer_id,
+            #     client_peer_id, bootnode,
+            #     identity, classification,
+            #     delegate_reward_rate, last_delegate_reward_rate_update,
+            #     unique_id, non_unique,
+            #     stake_balance, node_delegate_stake_balance,
+            #     penalties, reputation,
+            #     info_json
+            # )
+            # VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            # """,
             """
             INSERT OR REPLACE INTO subnet_nodes (
-                subnet_id, subnet_node_id, peer_id,
-                coldkey, hotkey, bootnode_peer_id,
-                client_peer_id, bootnode, 
+                subnet_id, subnet_node_id, coldkey, hotkey, peer_id,
+                bootnode_peer_id, client_peer_id, bootnode,
                 identity, classification,
                 delegate_reward_rate, last_delegate_reward_rate_update,
                 unique_id, non_unique,
-                stake_balance, node_delegate_stake_balance,
-                penalties, reputation,
-                info_json
+                stake_balance, total_node_delegate_stake_shares, node_delegate_stake_balance,
+                coldkey_reputation, subnet_node_reputation, node_slot_index, consecutive_idle_epochs,
+                consecutive_included_epochs, info_json
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 subnet_id,
                 node_info["subnet_node_id"],
-                node_info["peer_id"],
                 node_info["coldkey"],
                 node_info["hotkey"],
+                node_info["peer_id"],
                 node_info["bootnode_peer_id"],
                 node_info["client_peer_id"],
                 node_info["bootnode"],
@@ -145,10 +190,33 @@ class MockDatabase:
                 node_info["unique"],
                 node_info["non_unique"],
                 int(node_info.get("stake_balance", 0)),
+                int(node_info.get("total_node_delegate_stake_shares", 0)),
                 int(node_info.get("node_delegate_stake_balance", 0)),
-                int(node_info.get("penalties", 0)),
-                int(node_info.get("reputation", 0)),
+                coldkey_reputation_json,
+                int(node_info.get("subnet_node_reputation", 1000000000000000000)),
+                int(node_info.get("node_slot_index", node_info["subnet_node_id"])),
+                int(node_info.get("consecutive_idle_epochs", 0)),
+                int(node_info.get("consecutive_included_epochs", 0)),
                 json.dumps(_serialize_for_json(node_info)),
+                # subnet_id,
+                # node_info["subnet_node_id"],
+                # node_info["peer_id"],
+                # node_info["coldkey"],
+                # node_info["hotkey"],
+                # node_info["bootnode_peer_id"],
+                # node_info["client_peer_id"],
+                # node_info["bootnode"],
+                # node_info["identity"],
+                # classification_json,
+                # node_info["delegate_reward_rate"],
+                # node_info["last_delegate_reward_rate_update"],
+                # node_info["unique"],
+                # node_info["non_unique"],
+                # int(node_info.get("stake_balance", 0)),
+                # int(node_info.get("node_delegate_stake_balance", 0)),
+                # int(node_info.get("penalties", 0)),
+                # int(node_info.get("reputation", 0)),
+                # json.dumps(_serialize_for_json(node_info)),
             ),
         )
         self.conn.commit()

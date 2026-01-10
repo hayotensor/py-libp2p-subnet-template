@@ -996,6 +996,80 @@ class Hypertensor:
 
         return submit_extrinsic()
 
+    def register_overwatch_node(
+        self,
+        hotkey: str,
+        stake_to_be_added: int,
+    ):
+        """
+        Updates hotkey using coldkey
+
+        :param hotkey: Hotkey
+        :param stake_to_be_added: Stake to be added
+        """
+        # compose call
+        call = self.interface.compose_call(
+            call_module="Network",
+            call_function="register_overwatch_node",
+            call_params={
+                "hotkey": hotkey,
+                "stake_to_be_added": stake_to_be_added,
+            },
+        )
+
+        @retry(wait=wait_fixed(BLOCK_SECS + 1), stop=stop_after_attempt(4))
+        def submit_extrinsic():
+            try:
+                with self.interface as _interface:
+                    # get none on retries
+                    nonce = _interface.get_account_nonce(self.keypair.ss58_address)
+
+                    # create signed extrinsic
+                    extrinsic = _interface.create_signed_extrinsic(call=call, keypair=self.keypair, nonce=nonce)
+
+                    receipt = _interface.submit_extrinsic(extrinsic, wait_for_inclusion=True)
+                    return receipt
+            except SubstrateRequestException as e:
+                print("Failed to send: {}".format(e))
+
+        return submit_extrinsic()
+
+    def set_overwatch_node_peer_id(self, subnet_id: int, overwatch_node_id: int, peer_id: str):
+        """
+        Updates hotkey using coldkey
+
+        :param subnet_id: Subnet ID
+        :param overwatch_node_id: Overwatch node ID
+        :param peer_id: Peer ID
+        """
+        # compose call
+        call = self.interface.compose_call(
+            call_module="Network",
+            call_function="set_overwatch_node_peer_id",
+            call_params={
+                "subnet_id": subnet_id,
+                "overwatch_node_id": overwatch_node_id,
+                "peer_id": peer_id,
+            },
+        )
+
+        @retry(wait=wait_fixed(BLOCK_SECS + 1), stop=stop_after_attempt(4))
+        def submit_extrinsic():
+            try:
+                with self.interface as _interface:
+                    # get none on retries
+                    nonce = _interface.get_account_nonce(self.keypair.ss58_address)
+
+                    # create signed extrinsic
+                    extrinsic = _interface.create_signed_extrinsic(call=call, keypair=self.keypair, nonce=nonce)
+
+                    receipt = _interface.submit_extrinsic(extrinsic, wait_for_inclusion=True)
+                    return receipt
+            except SubstrateRequestException as e:
+                print("Failed to send: {}".format(e))
+
+        return submit_extrinsic()
+
     def get_subnet_node_data(
         self,
         subnet_id: int,

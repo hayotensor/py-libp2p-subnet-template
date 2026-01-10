@@ -63,12 +63,34 @@ class LocalMockHypertensor:
         if subnet_node_id != 0:
             # Register this node
             self.db.insert_subnet_node(
+                # subnet_id=self.subnet_id,
+                # node_info=dict(
+                #     subnet_node_id=self.subnet_node_id,
+                #     peer_id=self.peer_id.to_base58(),
+                #     coldkey=self.coldkey,
+                #     hotkey=self.hotkey,
+                #     bootnode_peer_id=self.bootnode_peer_id,
+                #     client_peer_id=self.client_peer_id,
+                #     bootnode="",
+                #     identity="",
+                #     classification={
+                #         "node_class": "Validator",
+                #         "start_epoch": self.get_epoch(),
+                #     },
+                #     delegate_reward_rate=0,
+                #     last_delegate_reward_rate_update=0,
+                #     unique="",
+                #     non_unique="",
+                #     stake_balance=int(1e18),
+                #     node_delegate_stake_balance=0,
+                #     penalties=0,
+                #     coldkey_reputation=int(1e18),
                 subnet_id=self.subnet_id,
                 node_info=dict(
                     subnet_node_id=self.subnet_node_id,
-                    peer_id=self.peer_id.to_base58(),
                     coldkey=self.coldkey,
                     hotkey=self.hotkey,
+                    peer_id=self.peer_id.to_base58(),
                     bootnode_peer_id=self.bootnode_peer_id,
                     client_peer_id=self.client_peer_id,
                     bootnode="",
@@ -82,9 +104,23 @@ class LocalMockHypertensor:
                     unique="",
                     non_unique="",
                     stake_balance=int(1e18),
-                    node_delegate_stake_balance=0,
-                    penalties=0,
-                    coldkey_reputation=int(1e18),
+                    total_node_delegate_stake_shares=int(1e18),
+                    node_delegate_stake_balance=int(1e18),
+                    coldkey_reputation={
+                        "start_epoch": self.get_epoch(),
+                        "score": int(1e18),
+                        "lifetime_node_count": int(1e18),
+                        "total_active_nodes": int(1e18),
+                        "total_increases": int(1e18),
+                        "total_decreases": int(1e18),
+                        "average_attestation": int(1e18),
+                        "last_validator_epoch": 0,
+                        "ow_score": int(1e18),
+                    },
+                    subnet_node_reputation=int(1e18),
+                    node_slot_index=self.subnet_node_id,
+                    consecutive_idle_epochs=0,
+                    consecutive_included_epochs=0,
                 ),
             )
         else:
@@ -343,6 +379,16 @@ class LocalMockHypertensor:
                 else:
                     classification = classification_data
 
+                coldkey_reputation_data = node_dict.get("coldkey_reputation", {})
+
+                if isinstance(coldkey_reputation_data, str):
+                    try:
+                        coldkey_reputation = json.loads(coldkey_reputation_data)
+                    except json.JSONDecodeError:
+                        coldkey_reputation = {}
+                else:
+                    coldkey_reputation = coldkey_reputation_data
+
                 node_class_name = classification.get("node_class", "Validator")
                 start_epoch = classification.get("start_epoch", 0)
 
@@ -368,7 +414,7 @@ class LocalMockHypertensor:
                             stake_balance=int(node_dict.get("stake_balance", 0)),
                             total_node_delegate_stake_shares=int(node_dict.get("total_node_delegate_stake_shares", 0)),
                             node_delegate_stake_balance=int(node_dict.get("node_delegate_stake_balance", 0)),
-                            coldkey_reputation=int(node_dict.get("coldkey_reputation", 0)),
+                            coldkey_reputation=coldkey_reputation,
                             subnet_node_reputation=int(node_dict.get("subnet_node_reputation", 0)),
                             node_slot_index=int(node_dict.get("node_slot_index", 0)),
                             consecutive_idle_epochs=int(node_dict.get("consecutive_idle_epochs", 0)),
@@ -400,6 +446,16 @@ class LocalMockHypertensor:
                 else:
                     classification = classification_data
 
+                coldkey_reputation_data = node_dict.get("coldkey_reputation", {})
+
+                if isinstance(coldkey_reputation_data, str):
+                    try:
+                        coldkey_reputation = json.loads(coldkey_reputation_data)
+                    except json.JSONDecodeError:
+                        coldkey_reputation = {}
+                else:
+                    coldkey_reputation = coldkey_reputation_data
+
                 qualified_nodes.append(
                     SubnetNodeInfo(
                         subnet_id=self.subnet_id,
@@ -419,7 +475,7 @@ class LocalMockHypertensor:
                         stake_balance=int(node_dict.get("stake_balance", 0)),
                         total_node_delegate_stake_shares=int(node_dict.get("total_node_delegate_stake_shares", 0)),
                         node_delegate_stake_balance=int(node_dict.get("node_delegate_stake_balance", 0)),
-                        coldkey_reputation=int(node_dict.get("coldkey_reputation", 0)),
+                        coldkey_reputation=coldkey_reputation,
                         subnet_node_reputation=int(node_dict.get("subnet_node_reputation", 0)),
                         node_slot_index=int(node_dict.get("node_slot_index", 0)),
                         consecutive_idle_epochs=int(node_dict.get("consecutive_idle_epochs", 0)),

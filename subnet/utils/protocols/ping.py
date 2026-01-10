@@ -1,9 +1,16 @@
+import sys
+
+from libp2p.abc import (
+    IHost,
+)
 from libp2p.custom_types import (
     TProtocol,
 )
+from libp2p.kad_dht.kad_dht import KadDHT
 from libp2p.network.stream.net_stream import (
     INetStream,
 )
+from libp2p.peer.id import ID as PeerID
 import trio
 
 PING_PROTOCOL_ID = TProtocol("/ipfs/ping/1.0.0")
@@ -42,3 +49,52 @@ async def send_ping(stream: INetStream) -> None:
 
     except Exception as e:
         print(f"error occurred : {e}")
+
+
+class PingProtocol:
+    def __init__(self, host: IHost, dht: KadDHT):
+        self.host = host
+        self.dht = dht
+        self.lock = trio.Lock()
+
+    async def ping(self, peer_id: PeerID) -> None:
+        async with self.lock:
+            try:
+                peer_info = await self.dht.find_peer(peer_id)
+                stream = await self._create_stream_with_retry(peer_id)
+                await send_ping(stream)
+            except Exception as e:
+                print(f"error occurred : {e}")
+
+    async def _create_stream_with_retry(
+        self, peer_id: PeerID, max_retries: int = 3, retry_delay: float = 0.5
+    ) -> INetStream:
+        """Create ping stream with retry mechanism for connection readiness."""
+        print("Creating ping stream", file=sys.stderr)
+        if self.debug:
+            print(
+                f"[DEBUG] About to create stream for protocol {PING_PROTOCOL_ID}",
+                file=sys.stderr,
+            )
+
+        for attempt in range(max_retries):
+            try:
+                stream = await self.host.new_stream(peer_id, [PING_PROTOCOL_ID])
+                print("Ping stream created successfully", file=sys.stderr)
+                return stream
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    if self.debug:
+                        print(
+                            f"[DEBUG] Stream creation attempt {attempt + 1} failed: {e}, retrying...",
+                            file=sys.stderr,
+                        )
+                    await trio.sleep(retry_delay)
+                else:
+                    if self.debug:
+                        print(
+                            f"[DEBUG] Stream creation failed after {max_retries} attempts: {e}",
+                            file=sys.stderr,
+                        )
+                    raise
+        raise RuntimeError("Failed to create ping stream after retries")

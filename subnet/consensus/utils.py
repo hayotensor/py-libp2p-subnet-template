@@ -53,6 +53,6 @@ def is_validator_or_attestor(hypertensor: Hypertensor, subnet_id: int, subnet_no
 def get_peers_node_id(peer_id: PeerID, subnet_nodes_info: List[SubnetNodeInfo]) -> Optional[int]:
     """Return the subnet_node_id for the given peer_id, or None if not found."""
     return next(
-        (node.subnet_node_id for node in subnet_nodes_info if peer_id.__eq__(node.peer_id)),
+        (node.subnet_node_id for node in subnet_nodes_info if peer_id.__eq__(node.peer_info.peer_id)),
         None,  # default value if not found
     )

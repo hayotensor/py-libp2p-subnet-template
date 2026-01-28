@@ -81,10 +81,10 @@ class Consensus:
         subnet_node_ids = []
         for node in included_nodes:
             logger.debug(
-                f"Checking is heartbeat exists under nmap key {HEARTBEAT_TOPIC}:{current_epoch - 1}:{node.peer_id}"
+                f"Checking is heartbeat exists under nmap key {HEARTBEAT_TOPIC}:{current_epoch - 1}:{node.peer_info.peer_id}"
             )
 
-            exists = self.db.nmap_get(HEARTBEAT_TOPIC, f"{current_epoch - 1}:{node.peer_id}") is not None
+            exists = self.db.nmap_get(HEARTBEAT_TOPIC, f"{current_epoch - 1}:{node.peer_info.peer_id}") is not None
             if not exists:
                 logger.debug(
                     f"Heartbeat does not exist for node ID {node.subnet_node_id} for epoch {current_epoch - 1}"

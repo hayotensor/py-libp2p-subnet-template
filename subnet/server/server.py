@@ -13,6 +13,7 @@ from libp2p.kad_dht.kad_dht import (
     KadDHT,
 )
 from libp2p.network.swarm import Swarm
+from libp2p.peer.persistent import create_async_peerstore, create_sync_peerstore, create_sync_rocksdb_peerstore
 from libp2p.pubsub.gossipsub import GossipSub
 from libp2p.pubsub.pubsub import Pubsub
 from libp2p.records.pubkey import PublicKeyValidator
@@ -39,11 +40,6 @@ from subnet.utils.connections.bootstrap import connect_to_bootstrap_nodes
 from subnet.utils.gossipsub.gossip_receiver import GossipReceiver
 from subnet.utils.hypertensor.subnet_info_tracker import SubnetInfoTracker
 from subnet.utils.patches import apply_all_patches
-
-# from subnet.utils.pos.pos_noise_transport import (
-#     PROTOCOL_ID as POS_PROTOCOL_ID,
-#     POSNoiseTransport,
-# )
 from subnet.utils.pos.pos_transport import (
     PROTOCOL_ID as POS_PROTOCOL_ID,
     POSTransport,
@@ -82,6 +78,7 @@ class Server:
         self,
         *,
         port: int,
+        peerstore_db_path: str | None = None,
         bootstrap_addrs: List[str] | None = None,
         key_pair: KeyPair,
         db: RocksDB,
@@ -91,6 +88,7 @@ class Server:
         is_bootstrap: bool = False,
         **kwargs,
     ):
+        logger.info(f"Server starting subnet_id={subnet_id}")
         self.port = port
         self.bootstrap_addrs = bootstrap_addrs
         self.key_pair = key_pair
@@ -99,9 +97,10 @@ class Server:
         self.hypertensor = hypertensor
         self.db = db
         self.is_bootstrap = is_bootstrap
+        self.peerstore_db_path = peerstore_db_path
 
     async def run(self):
-        print("running server gossip")
+        logger.info(f"Server running subnet_id={self.subnet_id}")
         from libp2p.utils.address_validation import (
             get_available_interfaces,
             get_optimal_binding_address,
@@ -135,9 +134,22 @@ class Server:
             TProtocol(secio.ID): pos_secio_transport,
         }
 
+        if self.peerstore_db_path is not None:
+            # peerstore = create_async_peerstore(
+            #     db_path=self.peerstore_db_path,
+            #     backend="leveldb",
+            # )
+            # peerstore = create_sync_peerstore(
+            #     db_path=self.peerstore_db_path,
+            #     backend="leveldb",
+            # )
+            raise NotImplementedError("Persistent peerstore not implemented.")
+        else:
+            peerstore = None
+
         # Create a new libp2p host
         # host = new_host(key_pair=self.key_pair)
-        host = new_host(key_pair=self.key_pair, sec_opt=secure_transports_by_protocol)
+        host = new_host(key_pair=self.key_pair, sec_opt=secure_transports_by_protocol, peerstore_opt=peerstore)
 
         # Increase connection limits to prevent aggressive pruning (EOF/0-byte reads)
         # This is done manually because new_host() only exposes this via QUIC config.
@@ -153,7 +165,7 @@ class Server:
         async with host.run(listen_addrs=listen_addrs), trio.open_nursery() as nursery:
             logger.info(f"Listening address: {listen_addrs}")
             # Start the peer-store cleanup task, TTL
-            nursery.start_soon(host.get_peerstore().start_cleanup_task, 60)
+            # nursery.start_soon(host.get_peerstore().start_cleanup_task, 60)
 
             # Set stream handler for ping protocol (used by overwatch nodes)
             host.set_stream_handler(PING_PROTOCOL_ID, handle_ping)

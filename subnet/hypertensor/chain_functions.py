@@ -277,7 +277,6 @@ class Hypertensor:
         max_stake: int,
         delegate_stake_percentage: int,
         initial_coldkeys: Any,
-        key_types: list,
         bootnodes: list,
     ) -> ExtrinsicReceipt:
         """
@@ -304,24 +303,19 @@ class Hypertensor:
                 # initial_coldkeys
                 self.map_key = "[u8; 20]"
                 self.map_value = "u32"
-            elif str(value[0][1]).startswith("/"):
-                # bootnodes
+            elif str(value[0][1]).startswith("/") or isinstance(value[0][1], bytes):
+                # bootnodes ``BTreeMap<PeerId, BoundedVec<u8, DefaultMaxVectorLength>>``
                 self.map_key = "Vec<u8>"
                 self.map_value = "Vec<u8>"
 
             for item_key, item_value in value:
                 key_obj = self.runtime_config.create_scale_object(type_string=self.map_key, metadata=self.metadata)
-                print("_patched_process_encode key_obj", key_obj)
-                print("_patched_process_encode item_key", item_key)
-                print("_patched_process_encode item_value", item_value)
-
                 data += key_obj.encode(item_key)
 
                 value_obj = self.runtime_config.create_scale_object(type_string=self.map_value, metadata=self.metadata)
 
                 data += value_obj.encode(item_value)
 
-            print("_patched_process_encode data", data)
             return data
 
         Map.process_encode = _patched_process_encode
@@ -341,7 +335,6 @@ class Hypertensor:
                     "max_stake": max_stake,
                     "delegate_stake_percentage": delegate_stake_percentage,
                     "initial_coldkeys": initial_coldkeys,
-                    "key_types": sorted(set(key_types)),
                     "bootnodes": sorted(set(bootnodes)),
                 },
             },
@@ -431,90 +424,33 @@ class Hypertensor:
 
         return submit_extrinsic()
 
-    def add_subnet_node(
-        self,
-        subnet_id: int,
-        hotkey: str,
-        peer_id: str,
-        bootnode_peer_id: str,
-        client_peer_id: str,
-        delegate_reward_rate: int,
-        stake_to_be_added: int,
-        bootnode: Optional[str] = None,
-        unique: Optional[str] = None,
-        non_unique: Optional[str] = None,
-    ) -> ExtrinsicReceipt:
-        """
-        Add subnet validator as subnet subnet_node and stake
-
-        :param subnet_id: subnet ID
-        :param hotkey: Hotkey of subnet node
-        :param peer_id: peer Id of subnet node
-        :param delegate_reward_rate: reward rate to delegate stakers (1e18)
-        :param stake_to_be_added: amount to stake
-        :param unique: unique optional parameter
-        :param non_unique: optional parametr
-        """
-        # compose call
-        call = self.interface.compose_call(
-            call_module="Network",
-            call_function="add_subnet_node",
-            call_params={
-                "subnet_id": subnet_id,
-                "hotkey": hotkey,
-                "peer_id": peer_id,
-                "bootnode_peer_id": bootnode_peer_id,
-                "client_peer_id": client_peer_id,
-                "bootnode": bootnode,
-                "delegate_reward_rate": delegate_reward_rate,
-                "stake_to_be_added": stake_to_be_added,
-                "unique": unique,
-                "non_unique": non_unique,
-            },
-        )
-
-        @retry(wait=wait_fixed(BLOCK_SECS + 1), stop=stop_after_attempt(4))
-        def submit_extrinsic():
-            try:
-                with self.interface as _interface:
-                    # get none on retries
-                    nonce = _interface.get_account_nonce(self.keypair.ss58_address)
-
-                    # create signed extrinsic
-                    extrinsic = _interface.create_signed_extrinsic(call=call, keypair=self.keypair, nonce=nonce)
-
-                    receipt = _interface.submit_extrinsic(extrinsic, wait_for_inclusion=True)
-                    return receipt
-            except SubstrateRequestException as e:
-                logger.error("Failed to send: {}".format(e))
-
-        return submit_extrinsic()
-
     def register_subnet_node(
         self,
         subnet_id: int,
         hotkey: str,
-        peer_id: str,
-        bootnode_peer_id: str,
-        client_peer_id: str,
+        peer_info: Any,
         delegate_reward_rate: int,
         stake_to_be_added: int,
         max_burn_amount: int,
-        bootnode: Optional[str] = None,
+        bootnode_peer_info: Optional[Any] = None,
+        client_peer_info: Optional[Any] = None,
         unique: Optional[str] = None,
         non_unique: Optional[str] = None,
+        delegate_account: Optional[str] = None,
     ) -> ExtrinsicReceipt:
         """
         Register subnet node and stake
 
         :param subnet_id: subnet ID
         :param hotkey: Hotkey of subnet node
-        :param peer_id: peer Id of subnet node
+        :param peer_info: peer info of subnet node
         :param delegate_reward_rate: reward rate to delegate stakers (1e18)
         :param stake_to_be_added: amount to stake
-        :param a: unique optional parameter
-        :param b: optional parametr
-        :param c: optional parametr
+        :param max_burn_amount: max burn amount
+        :param bootnode_peer_info: bootnode peer info
+        :param client_peer_info: client peer info
+        :param unique: unique optional parameter
+        :param non_unique: optional parametr
         """
         # compose call
         call = self.interface.compose_call(
@@ -523,15 +459,15 @@ class Hypertensor:
             call_params={
                 "subnet_id": subnet_id,
                 "hotkey": hotkey,
-                "peer_id": peer_id,
-                "bootnode_peer_id": bootnode_peer_id,
-                "client_peer_id": client_peer_id,
-                "bootnode": bootnode,
+                "peer_info": peer_info,
+                "bootnode_peer_info": bootnode_peer_info,
+                "client_peer_info": client_peer_info,
                 "delegate_reward_rate": delegate_reward_rate,
                 "stake_to_be_added": stake_to_be_added,
                 "unique": unique,
                 "non_unique": non_unique,
                 "max_burn_amount": max_burn_amount,
+                "delegate_account": delegate_account,
             },
         )
 
@@ -1624,6 +1560,24 @@ class Hypertensor:
             logger.warning(f"get_subnet_slot={e}", exc_info=True)
             return None
 
+    def get_subnet_id_from_friendly_id(self, friendly_id: int):
+        """
+        Query subnet friendly ID
+
+        :returns: subnet_id
+        """
+
+        @retry(wait=wait_fixed(BLOCK_SECS + 1), stop=stop_after_attempt(4))
+        def make_query():
+            try:
+                with self.interface as _interface:
+                    result = _interface.query("Network", "FriendlyUidSubnetId", [friendly_id])
+                    return result
+            except SubstrateRequestException as e:
+                logger.error("Failed to get rpc request: {}".format(e))
+
+        return make_query()
+
     def get_consensus_data(self, subnet_id: int, epoch: int):
         """
         Query an epochs consesnus submission
@@ -1907,6 +1861,7 @@ class Hypertensor:
                         method="network_getSubnetNodeInfo",
                         params=[subnet_id, subnet_node_id],
                     )
+                    print("data: ", data)
                     return data
             except SubstrateRequestException as e:
                 logger.error("Failed to get rpc request: {}".format(e))
@@ -2152,7 +2107,8 @@ class Hypertensor:
             subnet_node = SubnetNodeInfo.from_vec_u8(result["result"])
 
             return subnet_node
-        except Exception:
+        except Exception as e:
+            logger.error("Error: ", e)
             return None
 
     def get_validators_and_attestors_formatted(self, subnet_id: int) -> Optional[List["SubnetNodeInfo"]]:
@@ -2169,7 +2125,8 @@ class Hypertensor:
             subnet_nodes = SubnetNodeInfo.list_from_vec_u8(result["result"])
 
             return subnet_nodes
-        except Exception:
+        except Exception as e:
+            logger.error("Error: ", e)
             return None
 
     def get_formatted_subnet_data(self, subnet_id: int) -> Optional["SubnetData"]:
@@ -2188,7 +2145,8 @@ class Hypertensor:
             subnet = SubnetData.from_vec_u8(result["result"])
 
             return subnet
-        except Exception:
+        except Exception as e:
+            logger.error("Error: ", e)
             return None
 
     def get_formatted_subnet_info(self, subnet_id: int) -> Optional["SubnetInfo"]:
@@ -2205,7 +2163,8 @@ class Hypertensor:
             subnet = SubnetInfo.from_vec_u8(result["result"])
 
             return subnet
-        except Exception:
+        except Exception as e:
+            logger.error("Error: ", e)
             return None
 
     def get_formatted_all_subnet_info(self) -> List["SubnetInfo"]:
@@ -2222,7 +2181,8 @@ class Hypertensor:
             subnets_info = SubnetInfo.list_from_vec_u8(result["result"])
 
             return subnets_info
-        except Exception:
+        except Exception as e:
+            logger.error("Error: ", e)
             return None
 
     def get_formatted_get_subnet_node_info(self, subnet_id: int, subnet_node_id: int) -> Optional["SubnetNodeInfo"]:
@@ -2233,13 +2193,19 @@ class Hypertensor:
 
         :returns: List of subnet node IDs
         """
+        print("get_formatted_get_subnet_node_info")
+        print("subnet_id: ", subnet_id)
+        print("subnet_node_id: ", subnet_node_id)
         try:
             result = self.get_subnet_node_info(subnet_id, subnet_node_id)
+
+            print("Result: ", result)
 
             subnet_node_info = SubnetNodeInfo.from_vec_u8(result["result"])
 
             return subnet_node_info
-        except Exception:
+        except Exception as e:
+            logger.error("Error: ", e)
             return None
 
     def get_subnet_nodes_info_formatted(self, subnet_id: int) -> List["SubnetNodeInfo"]:
@@ -2256,7 +2222,8 @@ class Hypertensor:
             subnet_nodes_info = SubnetNodeInfo.list_from_vec_u8(result["result"])
 
             return subnet_nodes_info
-        except Exception:
+        except Exception as e:
+            logger.error("Error: ", e)
             return None
 
     def get_all_subnet_nodes_info_formatted(self) -> List["SubnetNodeInfo"]:
@@ -2273,7 +2240,8 @@ class Hypertensor:
             subnet_nodes_info = SubnetNodeInfo.list_from_vec_u8(result["result"])
 
             return subnet_nodes_info
-        except Exception:
+        except Exception as e:
+            logger.error("Error: ", e)
             return None
 
     def get_bootnodes_formatted(self, subnet_id: int) -> Optional["AllSubnetBootnodes"]:
@@ -2290,7 +2258,8 @@ class Hypertensor:
             all_subnet_bootnodes = AllSubnetBootnodes.from_vec_u8(result["result"])
 
             return all_subnet_bootnodes
-        except Exception:
+        except Exception as e:
+            logger.error("Error: ", e)
             return None
 
     def get_coldkey_subnet_nodes_info_formatted(self, coldkey: str) -> List["SubnetNodeInfo"]:
@@ -2307,7 +2276,8 @@ class Hypertensor:
             subnet_nodes_info = SubnetNodeInfo.list_from_vec_u8(result["result"])
 
             return subnet_nodes_info
-        except Exception:
+        except Exception as e:
+            logger.error("Error: ", e)
             return None
 
     def get_coldkey_stakes_formatted(self, coldkey: str) -> List["SubnetNodeStakeInfo"]:
@@ -2324,7 +2294,8 @@ class Hypertensor:
             coldkey_stakes = SubnetNodeStakeInfo.list_from_vec_u8(result["result"])
 
             return coldkey_stakes
-        except Exception:
+        except Exception as e:
+            logger.error("Error: ", e)
             return None
 
     def get_delegate_stakes_formatted(self, account_id: str) -> List["DelegateStakeInfo"]:
@@ -2341,7 +2312,8 @@ class Hypertensor:
             delegate_stakes = DelegateStakeInfo.list_from_vec_u8(result["result"])
 
             return delegate_stakes
-        except Exception:
+        except Exception as e:
+            logger.error("Error: ", e)
             return None
 
     def get_node_delegate_stakes_formatted(self, account_id: str) -> List["NodeDelegateStakeInfo"]:
@@ -2443,27 +2415,6 @@ class Hypertensor:
                 logger.error("Failed to send: {}".format(e))
 
         return submit_extrinsic()
-
-    def get_subnet_key_types(
-        self,
-        subnet_id: int,
-    ) -> ExtrinsicReceipt:
-        """
-        Query hotkey by subnet node ID
-
-        :param hotkey: Hotkey of subnet node
-        """
-
-        @retry(wait=wait_fixed(BLOCK_SECS + 1), stop=stop_after_attempt(4))
-        def make_query():
-            try:
-                with self.interface as _interface:
-                    result = _interface.query("Network", "SubnetKeyTypes", [subnet_id])
-                    return result
-            except SubstrateRequestException as e:
-                logger.error("Failed to get rpc request: {}".format(e))
-
-        return make_query()
 
     def get_overwatch_node_info_formatted(self, overwatch_node_id: int) -> Optional["OverwatchNodeInfo"]:
         """

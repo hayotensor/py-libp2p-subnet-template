@@ -147,8 +147,9 @@ class SubnetInfoTracker:
         """
         self.epoch_data = self.hypertensor.get_subnet_epoch_data(self.slot)
         self.nodes = self.hypertensor.get_subnet_nodes_info_formatted(self.subnet_id)
-        if self.nodes is not None or len(self.nodes) > 0:
-            self.nodes_v2[self.epoch_data.epoch] = self.nodes
+        if self.nodes is not None:
+            if len(self.nodes) > 0:
+                self.nodes_v2[self.epoch_data.epoch] = self.nodes
 
         self.overwatch_nodes = self.hypertensor.get_all_overwatch_nodes_info_formatted()
         self.bootnodes = self.hypertensor.get_bootnodes_formatted(self.subnet_id)
@@ -218,7 +219,7 @@ class SubnetInfoTracker:
         """
         nodes = await self.get_nodes(SubnetNodeClass.Registered, force)
         for node in nodes:
-            if peer_id.__eq__(node.peer_id):
+            if peer_id.__eq__(node.peer_info.peer_id):
                 return node.subnet_node_id
         return 0
 
@@ -233,7 +234,7 @@ class SubnetInfoTracker:
                 self.nodes = self.hypertensor.get_subnet_nodes_info_formatted(self.subnet_id)
 
         for node in self.nodes:
-            if peer_id.__eq__(node.peer_id):
+            if peer_id.__eq__(node.peer_info.peer_id):
                 return node.subnet_node_id
         return 0
 
@@ -250,8 +251,10 @@ class SubnetInfoTracker:
         try:
             if self.nodes is not None:
                 for node in self.nodes:
-                    for pid_raw in [node.peer_id, node.client_peer_id, node.bootnode_peer_id]:
-                        if pid_raw is not None and pid_raw != "":  # Check for empty strings for LocalMockHypertensor
+                    p_infos = [node.peer_info, node.bootnode_peer_info, node.client_peer_info]
+                    for p_info in p_infos:
+                        if p_info is not None and p_info.peer_id != "":
+                            pid_raw = p_info.peer_id
                             try:
                                 # Convert to PeerID format
                                 if isinstance(pid_raw, PeerID):

@@ -8,7 +8,7 @@ from subnet.api.auth.dependencies import limiter
 from subnet.api.auth.ratelimit import get_dynamic_limit
 from subnet.api.dependencies import get_db
 from subnet.api.models import ErrorResponse, HealthResponse, MetricsResponse
-from subnet.db.database import RocksDB
+from subnet.utils.db.database import RocksDB
 
 router = APIRouter(prefix="/health", tags=["health"])
 

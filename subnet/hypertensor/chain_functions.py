@@ -139,6 +139,8 @@ class Hypertensor:
             self.keypair = Keypair.create_from_private_key(phrase, crypto_type=KeypairType.ECDSA)
             self.hotkey = self.keypair.ss58_address
 
+        self.epoch_length = None
+
     def get_block_number(self):
         @retry(wait=wait_fixed(BLOCK_SECS + 1), stop=stop_after_attempt(4))
         def make_query():
@@ -1355,13 +1357,18 @@ class Hypertensor:
 
         :returns: epoch_length
         """
+        if self.epoch_length is not None:
+            return self.epoch_length
 
         @retry(wait=wait_fixed(BLOCK_SECS + 1), stop=stop_after_attempt(4))
         def make_query():
             try:
                 with self.interface as _interface:
                     result = _interface.get_constant("Network", "EpochLength")
-                    return result
+                    if result == None or result == "None":  # noqa: E711
+                        return result
+                    self.epoch_length = int(str(result))
+                    return self.epoch_length
             except SubstrateRequestException as e:
                 logger.error("Failed to get rpc request: {}".format(e))
 
@@ -1373,7 +1380,7 @@ class Hypertensor:
 
         :param subnet_id: subnet ID
         :param epoch: epoch to query SubnetElectedValidator
-        :returns: epoch_length
+        :returns: SubnetElectedValidator
         """
 
         @retry(wait=wait_fixed(BLOCK_SECS + 1), stop=stop_after_attempt(4))
@@ -1861,7 +1868,6 @@ class Hypertensor:
                         method="network_getSubnetNodeInfo",
                         params=[subnet_id, subnet_node_id],
                     )
-                    print("data: ", data)
                     return data
             except SubstrateRequestException as e:
                 logger.error("Failed to get rpc request: {}".format(e))
@@ -2193,13 +2199,8 @@ class Hypertensor:
 
         :returns: List of subnet node IDs
         """
-        print("get_formatted_get_subnet_node_info")
-        print("subnet_id: ", subnet_id)
-        print("subnet_node_id: ", subnet_node_id)
         try:
             result = self.get_subnet_node_info(subnet_id, subnet_node_id)
-
-            print("Result: ", result)
 
             subnet_node_info = SubnetNodeInfo.from_vec_u8(result["result"])
 

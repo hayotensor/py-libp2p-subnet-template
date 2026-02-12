@@ -5,7 +5,7 @@ from subnet.api.auth.ratelimit import get_dynamic_limit
 from subnet.api.config import settings
 from subnet.api.dependencies import get_db
 from subnet.api.models import ErrorResponse, PeerListResponse, PeerResponse
-from subnet.db.database import RocksDB
+from subnet.utils.db.database import RocksDB
 
 router = APIRouter(prefix="/peers", tags=["peers"])
 

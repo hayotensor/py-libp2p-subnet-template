@@ -11,7 +11,7 @@ from subnet.api.models import (
     NestedKeyListResponse,
     NestedKeyResponse,
 )
-from subnet.db.database import RocksDB
+from subnet.utils.db.database import RocksDB
 
 router = APIRouter(prefix="/keys", tags=["keys"])
 

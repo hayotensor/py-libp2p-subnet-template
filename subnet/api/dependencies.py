@@ -7,7 +7,7 @@ from typing import AsyncGenerator
 from rocksdict import AccessType, Rdict
 
 from subnet.api.config import settings
-from subnet.db.database import RocksDB
+from subnet.utils.db.database import RocksDB
 
 
 class DatabaseManager:

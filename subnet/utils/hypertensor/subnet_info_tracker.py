@@ -98,7 +98,7 @@ class SubnetInfoTracker:
 
         """
         # Sync with blockchain
-        slot = await self._get_subnet_slot(self.subnet_id)
+        slot = await self.get_subnet_slot(self.subnet_id)
         if slot is None:
             return BLOCK_SECS
 
@@ -147,6 +147,11 @@ class SubnetInfoTracker:
         seconds_to_wait = min(seconds_to_wait, self.epoch_data.seconds_remaining)
         return seconds_to_wait
 
+    async def get_epoch_data(self, force: bool = False) -> EpochData | None:
+        if force:
+            await self._update_data()
+        return self.epoch_data
+
     def _seconds_to_wait(self, next_epoch_update_interval: float, current_pct: float) -> int:
         # Calculate seconds to sleep
         if next_epoch_update_interval is not None:
@@ -164,7 +169,7 @@ class SubnetInfoTracker:
                 return d
         return None
 
-    async def _get_subnet_slot(self, subnet_id: int) -> int | None:
+    async def get_subnet_slot(self, subnet_id: int) -> int | None:
         if self.slot is None or self.slot == "None":  # noqa: E711
             try:
                 slot = self.hypertensor.get_subnet_slot(self.subnet_id)

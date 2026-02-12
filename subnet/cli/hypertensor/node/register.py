@@ -29,7 +29,7 @@ python -m subnet.cli.hypertensor.node.register \
 --peer_id 12D3KooWMwW1VqH7uWtUc5UGoyMJp1dG26Nkosc6RkRJ7RNiW6Cb \
 --delegate_reward_rate 0.125 \
 --stake_to_be_added 100.00 \
---max_burn_amount 100.00 \
+--max_burn_amount 100.00
 
 # Local
 

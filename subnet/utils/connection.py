@@ -115,7 +115,7 @@ async def maintain_connections(
                         ):
                             compatible_peers.append(peer_id)
                     except Exception as e:
-                        logger.warning(f"Failed to get peer info for {peer_id}: {e}", exc_info=True)
+                        logger.debug(f"Failed to get peer info for {peer_id}: {e}", exc_info=True)
                         continue
 
                 # Connect to random subset of compatible peers
@@ -149,7 +149,7 @@ async def maintain_connections(
                                     await host.connect(peer_info)
                                     logger.debug(f"Connected to peer: {peer_id}")
                             except Exception as e:
-                                logger.warning(f"Failed to connect to {peer_id}: {e}", exc_info=True)
+                                logger.debug(f"Failed to connect to {peer_id}: {e}", exc_info=True)
 
             if gossipsub:
                 # Prune disconnected peers from gossipsub mesh
@@ -178,7 +178,7 @@ async def maintain_connections(
                         if filter_compatible_peer_info(peer_info):
                             compatible_peers.append(peer_id)
                     except Exception as e:
-                        logger.warning(f"Failed to get peer info for {peer_id}: {e}", exc_info=True)
+                        logger.debug(f"Failed to get peer info for {peer_id}: {e}", exc_info=True)
                         continue
                 random_peers = random.sample(compatible_peers, min(64, len(compatible_peers)))
                 random_peers = [p for p in random_peers if p in onchain_peer_ids and p not in topic_peers]
@@ -237,7 +237,7 @@ async def maintain_single_gossipsub_connection(
                 host.get_peerstore().add_protocols(peer_id, ["/meshsub/1.0.0"])
                 return
         except Exception as e:
-            logger.warning(
+            logger.debug(
                 f"maintain_single_gossipsub_connection, Failed to get protocols for {peer_id} with: {e}",
                 exc_info=True,
             )
@@ -266,7 +266,7 @@ async def maintain_single_gossipsub_connection(
         gossipsub.add_peer(peer_id, GOSSIPSUB_PROTOCOL_ID)
         logger.debug(f"maintain_single_gossipsub_connection, Added peer to gossipsub: {peer_id}")
     except Exception as e:
-        logger.warning(f"maintain_single_gossipsub_connection, Failed to add peer {peer_id}: {e}")
+        logger.debug(f"maintain_single_gossipsub_connection, Failed to add peer {peer_id}: {e}")
 
 
 async def disconnect_peers(
@@ -290,7 +290,7 @@ async def disconnect_peers(
                 f"Fully cleared peer {peer_id} from peerstore because they are no longer registered on-chain"  # noqa: E501
             )
         except Exception as e:
-            logger.warning(f"Failed to disconnect peer {peer_id}: {e}", exc_info=True)
+            logger.debug(f"Failed to disconnect peer {peer_id}: {e}", exc_info=True)
         if dht:
             # Remove from DHT routing table
             try:
@@ -298,7 +298,7 @@ async def disconnect_peers(
                 dht.host.get_peerstore().clear_peerdata(peer_id)
                 logger.debug(f"Removed peer {peer_id} from routing table and cleared peerdata")
             except Exception as e:
-                logger.warning(f"Failed to remove peer {peer_id}: {e}", exc_info=True)
+                logger.debug(f"Failed to remove peer {peer_id}: {e}", exc_info=True)
         if gossipsub:
             # Remove from GossipSub
             try:
@@ -307,7 +307,7 @@ async def disconnect_peers(
                     f"Removed peer {peer_id} from gossipsub because they are no longer registered on-chain"  # noqa: E501
                 )
             except Exception as e:
-                logger.warning(f"Failed to remove peer {peer_id}: {e}", exc_info=True)
+                logger.debug(f"Failed to remove peer {peer_id}: {e}", exc_info=True)
 
 
 async def demonstrate_random_walk_discovery(dht: KadDHT, interval: int = 30) -> None:

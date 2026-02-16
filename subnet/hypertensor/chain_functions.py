@@ -1989,8 +1989,8 @@ class Hypertensor:
         return make_event_query()
 
     """
-  Helpers
-  """
+    Helpers
+    """
 
     def get_epoch_data(self) -> EpochData:
         current_block = self.get_block_number()

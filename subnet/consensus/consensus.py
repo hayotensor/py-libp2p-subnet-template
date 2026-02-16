@@ -74,7 +74,7 @@ class Consensus:
         subnet_node_ids = []
         for node in included_nodes:
             logger.debug(
-                f"Checking is heartbeat exists under nmap key {HEARTBEAT_TOPIC}:{current_epoch - 1}:{node.peer_info.peer_id}"
+                f"Checking is heartbeat exists under nmap key {HEARTBEAT_TOPIC}:{current_epoch - 1}:{node.peer_info.peer_id}"  # noqa: E501
             )
 
             exists = self.db.nmap_get(HEARTBEAT_TOPIC, f"{current_epoch - 1}:{node.peer_info.peer_id}") is not None
@@ -328,6 +328,7 @@ class Consensus:
             _current_epoch = subnet_epoch_data.epoch
 
             if _current_epoch != current_epoch:
+                logger.info(f"Validator not chosen for epoch {current_epoch}, moving to next epoch")
                 validator = None
                 break
 
@@ -459,7 +460,7 @@ class Consensus:
                         await trio.sleep(BLOCK_SECS)
                 else:
                     logger.info(
-                        f"❌ Data doesn't match validator ID {validator} data for epoch {current_epoch}, moving forward with no attetation"
+                        f"❌ Data doesn't match validator ID {validator} data for epoch {current_epoch}, moving forward with no attestation"  # noqa: E501
                     )
 
                     break

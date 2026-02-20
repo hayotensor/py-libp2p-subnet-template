@@ -52,17 +52,18 @@ async def maintain_connections(
         try:
             # Get all peers that are expected to be in the network
             onchain_peer_ids = await subnet_info_tracker.get_all_peer_ids(force=True)
-            logger.debug(f"All peer IDs: {onchain_peer_ids}")
+            logger.info(f"All peer IDs: {onchain_peer_ids}")
 
             # Get all peers that are currently connected to the host
             connected_peers = host.get_connected_peers()
+            logger.info(f"Host connected peers: {connected_peers}")
+
             list_peers = host.get_peerstore().peers_with_addrs()
-            logger.debug(f"Connected peers: {connected_peers}")
 
             # Get all peers that are in the DHT
             if dht:
                 peerstore_peer_ids = dht.host.get_peerstore().peer_ids()
-                logger.debug(f"Peerstore peer IDs: {peerstore_peer_ids}")
+                logger.info(f"DHT peerstore peer IDs: {peerstore_peer_ids}")
                 for peer_id in dht.routing_table.get_peer_ids():
                     if peer_id not in list_peers:
                         list_peers.append(peer_id)
@@ -100,7 +101,7 @@ async def maintain_connections(
                 dht,
             )
 
-            logger.debug(f"List peers: {list_peers}")
+            logger.info(f"List peers: {list_peers}")
 
             if len(connected_peers) < 32:
                 logger.debug("Reconnecting to maintain peer connections...")
@@ -157,18 +158,18 @@ async def maintain_connections(
                 for topic_peers in gossipsub.mesh.values():
                     mesh_peers.update(topic_peers)
 
-                logger.debug(f"GossipSub mesh: {gossipsub.mesh}")
+                logger.info(f"GossipSub mesh: {gossipsub.mesh}")
 
                 gossipsub_topic = next((t for t in gossipsub.mesh if str(t) == "heartbeat"), None)
 
                 topic_peers = set()
                 if gossipsub_topic:
                     topic_peers = gossipsub.mesh[gossipsub_topic]
-                    logger.debug(f"Heartbeat number of peers: {len(topic_peers)}")
+                    logger.info(f"Heartbeat number of peers: {len(topic_peers)}")
                     for peer_id in topic_peers:
-                        logger.debug(f"Heartbeat mesh peer: {peer_id}")
+                        logger.info(f"Heartbeat mesh peer: {peer_id}")
 
-                logger.debug(f"GossipSub fanout: {gossipsub.fanout}")
+                logger.info(f"GossipSub fanout: {gossipsub.fanout}")
                 ###
 
                 compatible_peers = []
@@ -185,7 +186,7 @@ async def maintain_connections(
 
                 await maintain_gossipsub_connections(random_peers, host, gossipsub, pubsub)
 
-            await trio.sleep(15)
+            await trio.sleep(60)
         except Exception as e:
             logger.error(f"Error maintaining connections: {e}", exc_info=True)
 
@@ -313,13 +314,13 @@ async def disconnect_peers(
 async def demonstrate_random_walk_discovery(dht: KadDHT, interval: int = 30) -> None:
     """Demonstrate Random Walk peer discovery with periodic statistics."""
     while True:
-        # logger.info(f"Routing table size: {dht.get_routing_table_size()}")
-        # logger.info(f"Connected peers: {len(dht.host.get_connected_peers())}")
-        # logger.info(f"Peerstore size: {len(dht.host.get_peerstore().peer_ids())}")
+        logger.info(f"Routing table size: {dht.get_routing_table_size()}")
+        logger.info(f"Connected peers: {len(dht.host.get_connected_peers())}")
+        logger.info(f"Peerstore size: {len(dht.host.get_peerstore().peer_ids())}")
 
         if dht.get_routing_table_size() > 0:
-            logger.debug("Peers in routing table:")
+            logger.info("Peers in routing table:")
             for peer_id in dht.routing_table.get_peer_ids():
-                logger.debug(f"  {peer_id}")
+                logger.info(f"  {peer_id}")
 
         await trio.sleep(interval)

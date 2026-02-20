@@ -31,6 +31,7 @@ from subnet.config import GOSSIPSUB_PROTOCOL_ID
 from subnet.consensus.consensus import Consensus
 from subnet.hypertensor.chain_functions import Hypertensor
 from subnet.hypertensor.mock.local_chain_functions import LocalMockHypertensor
+from subnet.utils.addresses import get_public_ip_interfaces
 from subnet.utils.connection import (
     demonstrate_random_walk_discovery,
     maintain_connections,
@@ -77,6 +78,7 @@ class Server:
     def __init__(
         self,
         *,
+        ip: str | None = None,
         port: int,
         peerstore_db_path: str | None = None,
         bootstrap_addrs: List[str] | None = None,
@@ -90,6 +92,7 @@ class Server:
         **kwargs,
     ):
         logger.info(f"Server starting subnet_id={subnet_id}")
+        self.ip = ip
         self.port = port
         self.bootstrap_addrs = bootstrap_addrs
         self.key_pair = key_pair
@@ -108,7 +111,10 @@ class Server:
             get_optimal_binding_address,
         )
 
-        listen_addrs = get_available_interfaces(self.port)
+        if self.ip is not None:
+            listen_addrs = get_public_ip_interfaces(self.ip, self.port)
+        else:
+            listen_addrs = get_available_interfaces(self.port)
 
         proof_of_stake = ProofOfStake(
             subnet_id=self.subnet_id,
@@ -152,8 +158,13 @@ class Server:
             peerstore = None
 
         # Create a new libp2p host
-        # host = new_host(key_pair=self.key_pair)
-        host = new_host(key_pair=self.key_pair, sec_opt=secure_transports_by_protocol, peerstore_opt=peerstore)
+        # host = new_host(key_pair=self.key_pair, listen_addrs=listen_addrs)
+        host = new_host(
+            key_pair=self.key_pair,
+            listen_addrs=listen_addrs,
+            sec_opt=secure_transports_by_protocol,
+            peerstore_opt=peerstore,
+        )
 
         # Increase connection limits to prevent aggressive pruning (EOF/0-byte reads)
         # This is done manually because new_host() only exposes this via QUIC config.

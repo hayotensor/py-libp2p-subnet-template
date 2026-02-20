@@ -69,6 +69,7 @@ python -m subnet.cli.run_node \
 
 python -m subnet.cli.run_node \
 --private_key_path baltathar.key \
+--ip 127.0.0.1 \
 --port 38962 \
 --bootstrap /ip4/127.0.0.1/tcp/38960/p2p/12D3KooWLGmub3LXuKQixBD5XwNW4PtSfnrysYzqs1oj19HxMUCF \
 --subnet_id 1 \
@@ -177,6 +178,18 @@ python -m subnet.cli.run_node \
         default="server",
         help="Run as a server or client node",
     )
+    parser.add_argument(
+        "--ip",
+        type=str,
+        default=None,
+        help=(
+            "IP to listen on. "
+            "For local testing this is not required. "
+            "For live testing, this should default to local private IP if behind NAT. "
+            "For live testing, this should default to public IP if not behind NAT. "
+        ),
+    )
+
     parser.add_argument(
         "--port",
         type=int,
@@ -418,6 +431,7 @@ def main() -> None:
 
     try:
         server = Server(
+            ip=args.ip,
             port=port,
             peerstore_db_path=None,  # TODO: Libp2p persistent peerstore needs work to be implemented
             bootstrap_addrs=args.bootstrap,
